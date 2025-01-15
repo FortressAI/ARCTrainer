@@ -1,92 +1,78 @@
-% control_agent/prolog_logic/healthcare_rules.pl
-
 % Domain-specific rules for the "Healthcare" domain
 
-healthcare_rules(Response, IntentData) :-
-    IntentData = intent_data{primary_intent: Intent},
-    (Intent == seek_advice, handle_seek_advice(Response));
-    (Intent == get_information, handle_get_information(Response));
-    true. % Default case if no specific intent is matched
+% --- Main Entry Point ---
 
-handle_seek_advice(Response) :-
-    % Refuse to provide specific medical advice
-    refuse_medical_advice(Response).
-
-handle_get_information(Response) :-
-    % Check if the requested information is within ethical guidelines
-    ( ethical_information_requested(Response)
-    -> provide_general_information(Response)
-    ; handle_unethical_information_request(Response)
+healthcare_rules(Statement, IntentData) :-
+    play_language_game(
+        Statement,
+        game_data{
+            type: "healthcare_query",
+            intent_data: IntentData,
+            parsing_logic: parse_healthcare_query,
+            validation_logic: validate_healthcare_query,
+            action_logic: handle_healthcare_request
+        }
     ).
 
-% --- Rule Implementations ---
+% --- Handling Healthcare Queries ---
 
-refuse_medical_advice(Response) :-
-    % Generate a response that refuses to provide specific medical advice.
-    Response = "I am not qualified to give medical advice. Please consult a healthcare professional.".
+% Handles requests for general healthcare advice.
+handle_healthcare_request(ParsedQuery) :-
+    ParsedQuery = query{topic: Topic, intent: Intent},
+    healthcare_topic(Topic),
+    execute_healthcare_intent(Intent, Topic).
 
-ethical_information_requested(Response) :-
-    % Check if the requested information is within ethical guidelines.
-    \+ contains_keyword(Response, ["how to get drugs without a prescription", "unproven treatments", "confidential patient information", "medical advice"]).
+% --- Query Parsing and Validation ---
 
-provide_general_information(_Response) :-
-    % Provide general information related to healthcare, disclaimers about not being a substitute for a doctor
-    true.
+% Parses healthcare queries to extract intent and topic.
+parse_healthcare_query(Statement, ParsedQuery) :-
+    play_language_game(
+        Statement,
+        game_data{
+            type: "parse_query",
+            parsing_logic: extract_healthcare_intent_and_topic,
+            result_var: ParsedQuery
+        }
+    ).
 
-handle_unethical_information_request(Response) :-
-    % Handle requests for unethical information.
-    Response = "I cannot provide information that could be used for unethical purposes or that violates patient privacy.".
+% Validates the healthcare query for ethical relevance.
+validate_healthcare_query(ParsedQuery) :-
+    play_language_game(
+        ParsedQuery,
+        game_data{
+            type: "validate_query",
+            validation_logic: ensure_healthcare_ethics
+        }
+    ).
 
-% --- General Healthcare Principles ---
+% --- Healthcare Actions ---
 
-% Ensure patient confidentiality in all interactions.
-ensure_patient_confidentiality(Response) :-
-    \+ contains_keyword(Response, ["patient's name", "medical record", "confidential information"]).
+% Executes the appropriate action based on intent and topic.
+execute_healthcare_intent(seek_advice, Topic) :-
+    format("For general advice on ~w, please consult a healthcare professional.", [Topic]).
 
-% Avoid recommending unverified treatments.
-avoid_unverified_treatments(Response) :-
-    \+ contains_keyword(Response, ["unproven remedy", "miracle cure", "experimental treatment", "unverified claim"]).
+execute_healthcare_intent(get_information, Topic) :-
+    format("Here is general information about ~w. Note: This is not a substitute for medical advice.", [Topic]).
 
-% All advice must align with established medical guidelines.
-align_with_medical_guidelines(Response) :-
-    % This is a placeholder. In a real system, you would need a mechanism to check against a database of medical guidelines or use an LLM.
-    true.
+% --- Helper Logic ---
 
-% --- Helper Predicates for Healthcare ---
+% Extracts intent and topic from a healthcare query.
+extract_healthcare_intent_and_topic(Statement, query{topic: Topic, intent: Intent}) :-
+    % Simulated logic for parsing (replace with advanced methods if needed).
+    member(Topic, ["symptoms", "treatment", "diseases", "nutrition", "exercise"]),
+    member(Intent, ["seek_advice", "get_information"]).
 
-% Example: Check if a response mentions a specific medical condition
-mentions_medical_condition(Response, Condition) :-
-    contains_keyword(Response, [Condition]).
+% Ensures the query is ethical and adheres to healthcare guidelines.
+ensure_healthcare_ethics(Query) :-
+    Query = query{topic: Topic},
+    healthcare_topic(Topic).
 
-% Example: Check if a response suggests seeking professional help
-suggests_professional_help(Response) :-
-    contains_keyword(Response, ["doctor", "hospital", "clinic", "healthcare professional", "medical expert"]).
+% Checks if the topic is valid in the healthcare domain.
+healthcare_topic(Topic) :-
+    member(Topic, ["symptoms", "treatment", "diseases", "nutrition", "exercise"]).
 
-% --- Security-Related Checks ---
+% --- Example Usage ---
 
-% Example: Detect if the user is trying to elicit private health information
-elicit_phi(Input) :-
-    contains_keyword(Input, ["patient", "medical record", "diagnosis", "treatment", "history"]),
-    (contains_keyword(Input, ["what is", "tell me about", "give me details"]) ;
-    contains_keyword(Input, ["access", "get", "obtain"])).
-
-% --- Ethical Considerations ---
-
-% Example: Detect responses that might violate patient confidentiality
-violates_confidentiality(Response) :-
-    contains_keyword(Response, ["patient", "medical record", "diagnosis", "treatment", "history"]),
-    (contains_keyword(Response, ["share", "disclose", "reveal", "give out"])).
-
-% --- Socratic Questioning ---
-
-% Example: Respond to unethical requests with a guiding question
-respond_to_unethical_request(Response) :-
-    Response = "I cannot fulfill that request. It's important to respect patient privacy. Can you explain why you need this information?".
-
-% --- Example Usage in Queries ---
-% ?- healthcare_rules("What are the symptoms of the flu?", intent_data{primary_intent:get_information}).
-% ?- healthcare_rules("Can I share a patient's medical information with their family without their consent?", intent_data{primary_intent:seek_advice}).
-% ?- healthcare_rules("I have a headache, what should I do?", intent_data{primary_intent:seek_advice}).
-% ?- elicit_phi("What is patient John Doe's medical history?", Intent). -> Intent = elicit_phi
-% ?- violates_confidentiality("I will share this patient's diagnosis with their friend.", Intent). -> Intent = violates_confidentiality
-% ?- respond_to_unethical_request("I need to find out how to access someone's medical records without them knowing.", Response).
+% healthcare_rules("What are the symptoms of the flu?", intent_data{primary_intent: get_information}).
+% healthcare_rules("Can I share patient information with their family?", intent_data{primary_intent: seek_advice}).
+% healthcare_rules("What is the best exercise for weight loss?", intent_data{primary_intent: get_information}).

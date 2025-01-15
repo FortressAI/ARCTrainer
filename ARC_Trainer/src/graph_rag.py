@@ -1,5 +1,8 @@
 from neo4j import GraphDatabase
 from loguru import logger
+import networkx as nx
+import matplotlib.pyplot as plt
+
 
 class GraphRAG:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
@@ -93,23 +96,69 @@ class GraphRAG:
             logger.error(f"Error querying knowledge for task {task_id}: {e}")
             return {}
 
-if __name__ == "__main__":
-    graph = GraphRAG()
+    def visualize_knowledge_graph(self, save_path=None):
+        """
+        Fetches data from Neo4j and visualizes it as a graph.
 
-    task_id = "example_task_1"
+        Args:
+            save_path (str): Optional file path to save the visualization.
+        """
+        try:
+            with self.driver.session() as session:
+                result = session.run(
+                    """
+                    MATCH (n)-[r]->(m)
+                    RETURN n.id AS source, m.id AS target, type(r) AS relationship
+                    """
+                )
+                graph_data = [
+                    {"source": record["source"], "target": record["target"], "relationship": record["relationship"]}
+                    for record in result
+                ]
+                logger.info(f"Fetched {len(graph_data)} relationships from Neo4j.")
+
+                # Create and visualize graph
+                graph = nx.DiGraph()
+                for entry in graph_data:
+                    graph.add_edge(entry["source"], entry["target"], relationship=entry["relationship"])
+
+                plt.figure(figsize=(12, 8))
+                pos = nx.spring_layout(graph)
+                nx.draw(
+                    graph, pos, with_labels=True, node_size=700, node_color="lightblue",
+                    font_size=10, font_weight="bold"
+                )
+                nx.draw_networkx_edge_labels(
+                    graph, pos, edge_labels={(u, v): d["relationship"] for u, v, d in graph.edges(data=True)}
+                )
+
+                if save_path:
+                    plt.savefig(save_path)
+                    logger.info(f"Graph visualization saved to {save_path}.")
+                else:
+                    plt.show()
+        except Exception as e:
+            logger.error(f"Error visualizing graph: {e}")
+
+if __name__ == "__main__":
+    graph_rag = GraphRAG()
+
+    # Example: Update knowledge
+    task_id = "example_task"
     task_data = {"grid": [[0, 1], [1, 0]]}
     result = {"transformed_grid": [[1, 0], [0, 1]]}
+    graph_rag.update_knowledge(task_id, task_data, result)
 
-    # Update knowledge graph
-    graph.update_knowledge(task_id, task_data, result)
-
-    # Store a counterexample
+    # Example: Store a counterexample
     counterexample_grid = [[0, 1], [1, 0]]
     counterexample_result = [[1, 1], [0, 0]]
-    graph.store_counterexample(task_id, counterexample_grid, counterexample_result)
+    graph_rag.store_counterexample(task_id, counterexample_grid, counterexample_result)
 
-    # Query the knowledge graph
-    retrieved_data = graph.query_knowledge(task_id)
+    # Example: Query knowledge
+    retrieved_data = graph_rag.query_knowledge(task_id)
     print("Retrieved Data:", retrieved_data)
 
-    graph.close()
+    # Example: Visualize the graph
+    graph_rag.visualize_knowledge_graph(save_path="knowledge_graph.png")
+
+    graph_rag.close()
