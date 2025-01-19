@@ -63,12 +63,71 @@ class CounterexampleFinder:
 
             self.prolog.retract(rule)
             logger.info("Retracted rule after counterexample testing.")
+            
+            # Perform additional validation
+            if self.detect_logical_contradictions(rule):
+                logger.warning(f"Rule {rule} has logical contradictions.")
+                return counterexamples + [{"error": "Logical contradiction detected"}]
+
+            if not self.test_counterfactuals(rule):
+                logger.warning(f"Rule {rule} failed counterfactual validation.")
+                return counterexamples + [{"error": "Counterfactual test failed"}]
+
             return counterexamples
 
         except Exception as e:
             logger.error(f"Error finding counterexamples: {e}")
             self.prolog.retract(rule)
             return []
+
+    def detect_logical_contradictions(self, rule):
+        """
+        Detects logical contradictions by running Prolog queries.
+
+        Args:
+            rule (str): Proposed Prolog rule.
+
+        Returns:
+            bool: True if contradictions are found, False otherwise.
+        """
+        try:
+            contradiction_query = f"findall(X, ({rule}, not(X)), Contradictions)."
+            contradictions = list(self.prolog.query(contradiction_query))
+            if contradictions:
+                logger.warning(f"Contradictions detected in rule {rule}: {contradictions}")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error detecting contradictions for rule {rule}: {e}")
+            return True  # Default to failure if error occurs
+
+    def test_counterfactuals(self, rule):
+        """
+        Tests the proposed rule against counterfactual cases.
+
+        Args:
+            rule (str): Proposed Prolog rule.
+
+        Returns:
+            bool: True if counterfactual tests pass, False otherwise.
+        """
+        try:
+            negated_rule = rule.replace(":-", ":- not(") + ")."
+            self.prolog.assertz(negated_rule)
+
+            query = f"{rule.split('(')[0]}(X, Result)."
+            counterexamples = list(self.prolog.query(query))
+
+            if counterexamples:
+                logger.warning(f"Counterfactual failures found for rule {rule}: {counterexamples}")
+                self.prolog.retract(negated_rule)
+                return False
+
+            self.prolog.retract(negated_rule)
+            return True
+        except Exception as e:
+            logger.error(f"Error in counterfactual testing for rule {rule}: {e}")
+            return False
 
     def store_counterexamples(self, rule_id, counterexamples):
         """
@@ -88,16 +147,15 @@ class CounterexampleFinder:
                         MERGE (r)-[:HAS_COUNTEREXAMPLE]->(ce)
                         """,
                         rule_id=rule_id,
-                        input=counterexample["input"],
-                        expected=counterexample["expected"],
-                        actual=counterexample["actual"]
+                        input=counterexample.get("input"),
+                        expected=counterexample.get("expected"),
+                        actual=counterexample.get("actual")
                     )
                 logger.info(f"Stored counterexamples for rule {rule_id} in Neo4j.")
         except Exception as e:
             logger.error(f"Error storing counterexamples: {e}")
 
 if __name__ == "__main__":
-    # Example usage
     logger.info("Initializing Counterexample Finder")
 
     finder = CounterexampleFinder(

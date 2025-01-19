@@ -21,84 +21,113 @@ class GraphRAG:
         """Closes the connection to the Neo4j database."""
         self.driver.close()
 
-    def update_knowledge(self, task_id, task_data, result):
+    def store_ai_decision(self, task_id, decision_data, trust_score):
         """
-        Updates the knowledge graph with task data and result.
+        Stores an AI decision, linking it with its associated trust score.
 
         Args:
-            task_id (str): Task ID.
-            task_data (dict): Data related to the task.
-            result (dict): Result of the task processing.
+            task_id (str): Task ID associated with the AI decision.
+            decision_data (dict): Data about the decision.
+            trust_score (float): AI trust score (0-1 scale).
         """
         try:
             with self.driver.session() as session:
                 session.run(
                     """
                     MERGE (t:Task {id: $task_id})
-                    SET t.data = $task_data, t.result = $result
+                    SET t.decision_data = $decision_data, t.ai_trust_score = $trust_score
                     """,
-                    task_id=task_id, task_data=task_data, result=result
+                    task_id=task_id,
+                    decision_data=decision_data,
+                    trust_score=trust_score
                 )
-                logger.info(f"Knowledge updated for task {task_id}.")
+                logger.info(f"Stored AI decision for task {task_id} with trust score {trust_score}.")
         except Exception as e:
-            logger.error(f"Error updating knowledge for task {task_id}: {e}")
+            logger.error(f"Error storing AI decision for task {task_id}: {e}")
 
-    def store_counterexample(self, task_id, grid, transformed_grid):
+    def track_decision_revision(self, task_id, previous_decision, new_decision, reason):
         """
-        Stores a counterexample in the knowledge graph.
+        Logs a revision to an AI decision and updates the knowledge graph.
 
         Args:
-            task_id (str): Task ID associated with the counterexample.
-            grid (list): Original grid data.
-            transformed_grid (list): Incorrectly transformed grid.
+            task_id (str): Task ID where the decision was revised.
+            previous_decision (str): The old decision.
+            new_decision (str): The revised decision.
+            reason (str): The reason for the revision.
         """
         try:
             with self.driver.session() as session:
                 session.run(
                     """
                     MATCH (t:Task {id: $task_id})
-                    MERGE (ce:Counterexample {grid: $grid, transformed_grid: $transformed_grid})
-                    MERGE (t)-[:HAS_COUNTEREXAMPLE]->(ce)
+                    MERGE (rev:Revision {previous: $previous_decision, new: $new_decision, reason: $reason})
+                    MERGE (t)-[:HAS_REVISION]->(rev)
                     """,
-                    task_id=task_id, grid=grid, transformed_grid=transformed_grid
+                    task_id=task_id,
+                    previous_decision=previous_decision,
+                    new_decision=new_decision,
+                    reason=reason
                 )
-                logger.info(f"Counterexample stored for task {task_id}.")
+                logger.info(f"Logged decision revision for task {task_id}: {previous_decision} → {new_decision}.")
         except Exception as e:
-            logger.error(f"Error storing counterexample for task {task_id}: {e}")
+            logger.error(f"Error tracking decision revision for task {task_id}: {e}")
 
-    def query_knowledge(self, task_id):
+    def query_ai_decision_history(self, task_id):
         """
-        Queries the knowledge graph for a specific task.
+        Retrieves the decision history for a specific AI task.
 
         Args:
-            task_id (str): Task ID to query in the knowledge graph.
+            task_id (str): The task ID to query.
 
         Returns:
-            dict: Data associated with the task.
+            list: Decision history containing previous and revised decisions.
         """
         try:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (t:Task {id: $task_id})
-                    RETURN t.data AS data, t.result AS result
+                    MATCH (t:Task {id: $task_id})-[:HAS_REVISION]->(rev:Revision)
+                    RETURN rev.previous AS previous, rev.new AS new, rev.reason AS reason
                     """,
                     task_id=task_id
                 )
-                record = result.single()
-                if record:
-                    logger.info(f"Data retrieved for task {task_id}.")
-                    return {"data": record["data"], "result": record["result"]}
-                else:
-                    logger.warning(f"No data found for task {task_id}.")
-                    return {}
+
+                history = [
+                    {"previous": record["previous"], "new": record["new"], "reason": record["reason"]}
+                    for record in result
+                ]
+
+                logger.info(f"Retrieved decision history for task {task_id}.")
+                return history
         except Exception as e:
-            logger.error(f"Error querying knowledge for task {task_id}: {e}")
-            return {}
+            logger.error(f"Error retrieving AI decision history for task {task_id}: {e}")
+            return []
+
+    def update_knowledge_graph(self, task_id, decision_data):
+        """
+        Updates the knowledge graph with a validated AI decision.
+
+        Args:
+            task_id (str): Task ID associated with the decision.
+            decision_data (dict): The updated decision data.
+        """
+        try:
+            with self.driver.session() as session:
+                session.run(
+                    """
+                    MATCH (t:Task {id: $task_id})
+                    SET t.decision_data = $decision_data
+                    """,
+                    task_id=task_id,
+                    decision_data=decision_data
+                )
+                logger.info(f"Updated knowledge graph for task {task_id}.")
+        except Exception as e:
+            logger.error(f"Error updating knowledge graph for task {task_id}: {e}")
 
     def visualize_knowledge_graph(self, save_path=None):
         """
-        Fetches data from Neo4j and visualizes it as a graph.
+        Fetches decision data from Neo4j and visualizes the knowledge graph.
 
         Args:
             save_path (str): Optional file path to save the visualization.
@@ -107,30 +136,26 @@ class GraphRAG:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (n)-[r]->(m)
-                    RETURN n.id AS source, m.id AS target, type(r) AS relationship
+                    MATCH (t:Task)-[r:HAS_REVISION]->(rev:Revision)
+                    RETURN t.id AS task, rev.previous AS previous, rev.new AS new, rev.reason AS reason
                     """
                 )
+
                 graph_data = [
-                    {"source": record["source"], "target": record["target"], "relationship": record["relationship"]}
+                    {"task": record["task"], "previous": record["previous"], "new": record["new"], "reason": record["reason"]}
                     for record in result
                 ]
-                logger.info(f"Fetched {len(graph_data)} relationships from Neo4j.")
+                logger.info(f"Fetched {len(graph_data)} decision revisions from Neo4j.")
 
-                # Create and visualize graph
+                # Create graph visualization
                 graph = nx.DiGraph()
                 for entry in graph_data:
-                    graph.add_edge(entry["source"], entry["target"], relationship=entry["relationship"])
+                    graph.add_edge(entry["previous"], entry["new"], label=entry["reason"])
 
                 plt.figure(figsize=(12, 8))
                 pos = nx.spring_layout(graph)
-                nx.draw(
-                    graph, pos, with_labels=True, node_size=700, node_color="lightblue",
-                    font_size=10, font_weight="bold"
-                )
-                nx.draw_networkx_edge_labels(
-                    graph, pos, edge_labels={(u, v): d["relationship"] for u, v, d in graph.edges(data=True)}
-                )
+                nx.draw(graph, pos, with_labels=True, node_size=700, node_color="lightblue", font_size=10, font_weight="bold")
+                nx.draw_networkx_edge_labels(graph, pos, edge_labels={(u, v): d["label"] for u, v, d in graph.edges(data=True)})
 
                 if save_path:
                     plt.savefig(save_path)
@@ -138,27 +163,25 @@ class GraphRAG:
                 else:
                     plt.show()
         except Exception as e:
-            logger.error(f"Error visualizing graph: {e}")
+            logger.error(f"Error visualizing knowledge graph: {e}")
 
 if __name__ == "__main__":
     graph_rag = GraphRAG()
 
-    # Example: Update knowledge
-    task_id = "example_task"
-    task_data = {"grid": [[0, 1], [1, 0]]}
-    result = {"transformed_grid": [[1, 0], [0, 1]]}
-    graph_rag.update_knowledge(task_id, task_data, result)
+    # Example: Store an AI decision
+    graph_rag.store_ai_decision("task_123", {"outcome": "approve"}, trust_score=0.85)
 
-    # Example: Store a counterexample
-    counterexample_grid = [[0, 1], [1, 0]]
-    counterexample_result = [[1, 1], [0, 0]]
-    graph_rag.store_counterexample(task_id, counterexample_grid, counterexample_result)
+    # Example: Log a decision revision
+    graph_rag.track_decision_revision("task_123", "approve", "deny", "Counterfactual testing failed.")
 
-    # Example: Query knowledge
-    retrieved_data = graph_rag.query_knowledge(task_id)
-    print("Retrieved Data:", retrieved_data)
+    # Example: Retrieve decision history
+    history = graph_rag.query_ai_decision_history("task_123")
+    print("Decision History:", history)
 
-    # Example: Visualize the graph
-    graph_rag.visualize_knowledge_graph(save_path="knowledge_graph.png")
+    # Example: Update knowledge graph
+    graph_rag.update_knowledge_graph("task_123", {"outcome": "deny"})
+
+    # Example: Visualize the knowledge graph
+    graph_rag.visualize_knowledge_graph(save_path="decision_graph.png")
 
     graph_rag.close()

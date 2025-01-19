@@ -28,7 +28,7 @@ class LLMFineTuner:
 
     def fetch_training_data(self):
         """
-        Fetches training and validation data from Neo4j.
+        Fetches training and validation data from Neo4j based on user feedback.
 
         Returns:
             DatasetDict: Hugging Face DatasetDict with train and validation splits.
@@ -37,23 +37,27 @@ class LLMFineTuner:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (d:Dataset)-[:CONTAINS]->(t:TrainingData)
-                    RETURN t.split AS split, t.text AS text, t.label AS label
+                    MATCH (f:Feedback)
+                    RETURN f.feedback AS feedback, f.rating AS rating, f.correction AS correction
                     """
                 )
+
                 train_data = []
                 val_data = []
                 for record in result:
-                    if record["split"] == "train":
-                        train_data.append({"text": record["text"], "label": record["label"]})
-                    elif record["split"] == "validation":
-                        val_data.append({"text": record["text"], "label": record["label"]})
+                    text = record["feedback"]
+                    label = 1 if record["rating"] >= 4 else 0  # High ratings = positive example
+                    correction = record["correction"]
+
+                    train_data.append({"text": text, "label": label})
+                    if correction:
+                        val_data.append({"text": correction, "label": 1})  # Corrections as valid responses
 
                 train_dataset = Dataset.from_list(train_data)
                 val_dataset = Dataset.from_list(val_data)
 
-                logger.info(f"Fetched training data: {len(train_data)} examples.")
-                logger.info(f"Fetched validation data: {len(val_data)} examples.")
+                logger.info(f"Fetched {len(train_data)} training examples.")
+                logger.info(f"Fetched {len(val_data)} validation examples.")
 
                 return DatasetDict({"train": train_dataset, "validation": val_dataset})
         except Exception as e:

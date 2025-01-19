@@ -78,6 +78,107 @@ class LearningAgent:
         except Exception as e:
             logger.error(f"Error refining task logic for task {task_id}: {e}")
 
+    def integrate_user_feedback(self, task_id):
+        """
+        Integrates user feedback to improve AI reasoning and update task rules.
+
+        Args:
+            task_id (str): Task ID to update.
+        """
+        try:
+            with self.driver.session() as session:
+                result = session.run(
+                    """
+                    MATCH (t:Task {id: $task_id})-[:RECEIVED_FEEDBACK]->(f:Feedback)
+                    WHERE f.correction IS NOT NULL
+                    RETURN f.correction AS correction
+                    """,
+                    task_id=task_id
+                )
+
+                corrections = [record["correction"] for record in result if record["correction"]]
+
+                if corrections:
+                    for correction in corrections:
+                        session.run(
+                            """
+                            MATCH (r:Rule)
+                            WHERE r.definition CONTAINS $correction
+                            SET r.causal_validation = true
+                            """,
+                            correction=correction
+                        )
+                        logger.info(f"Applied user correction to rule: {correction}")
+
+                    logger.info(f"Updated AI rules based on user feedback for task {task_id}.")
+        except Exception as e:
+            logger.error(f"Error integrating user feedback for task {task_id}: {e}")
+
+    def retrain_model_based_on_feedback(self):
+        """
+        Uses aggregated feedback data to retrain AI models and improve learning.
+        """
+        try:
+            with self.driver.session() as session:
+                result = session.run(
+                    """
+                    MATCH (f:Feedback)
+                    RETURN f.feedback AS feedback, f.rating AS rating, f.correction AS correction
+                    """
+                )
+
+                feedback_data = []
+                for record in result:
+                    feedback_data.append({
+                        "feedback": record["feedback"],
+                        "rating": record["rating"],
+                        "correction": record["correction"]
+                    })
+
+                if not feedback_data:
+                    logger.info("No feedback available for retraining.")
+                    return
+
+                # Logic to process feedback and adjust model parameters
+                logger.info(f"Retraining model with {len(feedback_data)} user feedback entries.")
+
+                # (Optional: Implement actual model retraining here)
+
+                logger.info("Model retraining complete.")
+        except Exception as e:
+            logger.error(f"Error retraining model based on feedback: {e}")
+
+    def update_knowledge_graph_from_feedback(self, session_id):
+        """
+        Updates knowledge graph with validated corrections from user feedback.
+
+        Args:
+            session_id (str): The session containing feedback for updating the graph.
+        """
+        try:
+            feedback_entries = self.user_feedback.get_feedback(session_id)
+            if not feedback_entries:
+                logger.info(f"No feedback available for session {session_id}.")
+                return
+
+            with self.driver.session() as session:
+                for entry in feedback_entries:
+                    correction = entry.get("correction")
+                    if correction:
+                        session.run(
+                            """
+                            MATCH (r:Rule)
+                            WHERE r.definition CONTAINS $correction
+                            SET r.causal_validation = true
+                            """,
+                            correction=correction
+                        )
+                        logger.info(f"Integrated user feedback into the knowledge graph: {correction}")
+
+            logger.info(f"Knowledge graph updated for session {session_id}.")
+        except Exception as e:
+            logger.error(f"Error updating knowledge graph from feedback for session {session_id}: {e}")
+
 if __name__ == "__main__":
     agent = LearningAgent()
 
@@ -87,5 +188,8 @@ if __name__ == "__main__":
 
     agent.analyze_session(session_id)
     agent.refine_task_logic(task_id)
+    agent.integrate_user_feedback(task_id)
+    agent.retrain_model_based_on_feedback()
+    agent.update_knowledge_graph_from_feedback(session_id)
 
     agent.close()

@@ -22,9 +22,64 @@ class TaskManager:
         """Closes the connection to the Neo4j database."""
         self.driver.close()
 
+    def validate_task_with_knowledge_graph(self, task_id):
+        """
+        Validates a task by checking the AI knowledge graph for contradictions.
+
+        Args:
+            task_id (str): Unique identifier for the task.
+
+        Returns:
+            bool: True if the task is valid, False otherwise.
+        """
+        try:
+            with self.driver.session() as session:
+                result = session.run(
+                    """
+                    MATCH (t:Task {id: $task_id})-[:USES_RULE]->(r:Rule)
+                    OPTIONAL MATCH (c:Contradiction)-[:CONFLICTS_WITH]->(r)
+                    RETURN COUNT(c) AS contradictions
+                    """,
+                    task_id=task_id
+                )
+
+                record = result.single()
+                if record and record["contradictions"] > 0:
+                    logger.warning(f"Task {task_id} conflicts with existing AI knowledge.")
+                    return False
+
+                logger.info(f"Task {task_id} passed knowledge graph validation.")
+                return True
+        except Exception as e:
+            logger.error(f"Error validating task {task_id} with knowledge graph: {e}")
+            return False
+
+    def track_task_decision_path(self, task_id, decision):
+        """
+        Logs the AI's decision-making path for a task in the knowledge graph.
+
+        Args:
+            task_id (str): Unique identifier for the task.
+            decision (dict): The AI's decision reasoning data.
+        """
+        try:
+            with self.driver.session() as session:
+                session.run(
+                    """
+                    MATCH (t:Task {id: $task_id})
+                    MERGE (d:Decision {id: $task_id, decision_data: $decision})
+                    MERGE (t)-[:RESULTED_IN]->(d)
+                    """,
+                    task_id=task_id,
+                    decision=decision
+                )
+                logger.info(f"Stored decision path for task {task_id}.")
+        except Exception as e:
+            logger.error(f"Error tracking decision path for task {task_id}: {e}")
+
     def submit_task(self, task_data):
         """
-        Submits a task to the Neo4j database.
+        Submits a task to the Neo4j database, ensuring it meets AI safety requirements.
 
         Args:
             task_data (dict): Data for the task to be processed.
@@ -42,7 +97,29 @@ class TaskManager:
                     task_id=task_id, task_data=task_data
                 )
                 logger.info(f"Task {task_id} submitted successfully.")
-                return {"task_id": task_id, "status": "queued"}
+
+                # Validate the task using the AI knowledge graph
+                if not self.validate_task_with_knowledge_graph(task_id):
+                    session.run(
+                        """
+                        MATCH (t:Task {id: $task_id})
+                        SET t.status = 'failed'
+                        """,
+                        task_id=task_id
+                    )
+                    logger.warning(f"Task {task_id} rejected due to conflicts in AI knowledge graph.")
+                    return {"task_id": task_id, "status": "failed", "reason": "Knowledge graph conflict"}
+
+                # Mark as ready for execution
+                session.run(
+                    """
+                    MATCH (t:Task {id: $task_id})
+                    SET t.status = 'ready'
+                    """,
+                    task_id=task_id
+                )
+                logger.info(f"Task {task_id} passed all safety checks and is ready for execution.")
+                return {"task_id": task_id, "status": "ready"}
         except Exception as e:
             logger.error(f"Error submitting task: {e}")
             return {"error": "Failed to submit task"}
