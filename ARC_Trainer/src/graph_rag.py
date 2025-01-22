@@ -1,13 +1,10 @@
 from neo4j import GraphDatabase
 from loguru import logger
-import networkx as nx
-import matplotlib.pyplot as plt
-
 
 class GraphRAG:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
         """
-        Initializes the Neo4j-backed Knowledge Graph.
+        Initializes the Neo4j-backed Knowledge Graph for multi-domain ontologies.
 
         Args:
             uri (str): URI for connecting to Neo4j.
@@ -15,173 +12,175 @@ class GraphRAG:
             password (str): Password for Neo4j authentication.
         """
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
-        logger.info("GraphRAG initialized.")
+        logger.info("GraphRAG initialized with multi-domain ontology support.")
 
     def close(self):
         """Closes the connection to the Neo4j database."""
         self.driver.close()
 
-    def store_ai_decision(self, task_id, decision_data, trust_score):
+    def store_ontology(self, rule_id, cnl_rule, prolog_rule, domain="general"):
         """
-        Stores an AI decision, linking it with its associated trust score.
+        Stores an ontology rule in Neo4j under a specified domain.
 
         Args:
-            task_id (str): Task ID associated with the AI decision.
-            decision_data (dict): Data about the decision.
-            trust_score (float): AI trust score (0-1 scale).
+            rule_id (str): Unique identifier for the rule.
+            cnl_rule (str): Human-readable ontology definition.
+            prolog_rule (str): Prolog equivalent of the ontology.
+            domain (str): Domain category (e.g., legal, healthcare, education, AI ethics, warfare).
         """
         try:
             with self.driver.session() as session:
                 session.run(
                     """
-                    MERGE (t:Task {id: $task_id})
-                    SET t.decision_data = $decision_data, t.ai_trust_score = $trust_score
+                    MERGE (r:OntologyRule {id: $rule_id})
+                    SET r.cnl_rule = $cnl_rule, r.prolog_rule = $prolog_rule, r.domain = $domain
                     """,
-                    task_id=task_id,
-                    decision_data=decision_data,
-                    trust_score=trust_score
+                    rule_id=rule_id, cnl_rule=cnl_rule, prolog_rule=prolog_rule, domain=domain
                 )
-                logger.info(f"Stored AI decision for task {task_id} with trust score {trust_score}.")
+                logger.info(f"Ontology rule {rule_id} stored successfully under domain '{domain}'.")
         except Exception as e:
-            logger.error(f"Error storing AI decision for task {task_id}: {e}")
+            logger.error(f"Error storing ontology rule {rule_id}: {e}")
 
-    def track_decision_revision(self, task_id, previous_decision, new_decision, reason):
+    def retrieve_ontology(self, domain="general"):
         """
-        Logs a revision to an AI decision and updates the knowledge graph.
+        Retrieves all ontology rules for a given domain.
 
         Args:
-            task_id (str): Task ID where the decision was revised.
-            previous_decision (str): The old decision.
-            new_decision (str): The revised decision.
-            reason (str): The reason for the revision.
-        """
-        try:
-            with self.driver.session() as session:
-                session.run(
-                    """
-                    MATCH (t:Task {id: $task_id})
-                    MERGE (rev:Revision {previous: $previous_decision, new: $new_decision, reason: $reason})
-                    MERGE (t)-[:HAS_REVISION]->(rev)
-                    """,
-                    task_id=task_id,
-                    previous_decision=previous_decision,
-                    new_decision=new_decision,
-                    reason=reason
-                )
-                logger.info(f"Logged decision revision for task {task_id}: {previous_decision} → {new_decision}.")
-        except Exception as e:
-            logger.error(f"Error tracking decision revision for task {task_id}: {e}")
-
-    def query_ai_decision_history(self, task_id):
-        """
-        Retrieves the decision history for a specific AI task.
-
-        Args:
-            task_id (str): The task ID to query.
+            domain (str): The domain to filter ontology rules.
 
         Returns:
-            list: Decision history containing previous and revised decisions.
+            list: Retrieved ontology rules.
         """
         try:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (t:Task {id: $task_id})-[:HAS_REVISION]->(rev:Revision)
-                    RETURN rev.previous AS previous, rev.new AS new, rev.reason AS reason
+                    MATCH (r:OntologyRule) WHERE r.domain = $domain
+                    RETURN r.id AS id, r.cnl_rule AS cnl_rule, r.prolog_rule AS prolog_rule
                     """,
-                    task_id=task_id
+                    domain=domain
                 )
-
-                history = [
-                    {"previous": record["previous"], "new": record["new"], "reason": record["reason"]}
-                    for record in result
-                ]
-
-                logger.info(f"Retrieved decision history for task {task_id}.")
-                return history
+                rules = [{"id": record["id"], "cnl_rule": record["cnl_rule"], "prolog_rule": record["prolog_rule"]}
+                         for record in result]
+                logger.info(f"Retrieved {len(rules)} ontology rules for domain '{domain}'.")
+                return rules
         except Exception as e:
-            logger.error(f"Error retrieving AI decision history for task {task_id}: {e}")
+            logger.error(f"Error retrieving ontology rules: {e}")
             return []
 
-    def update_knowledge_graph(self, task_id, decision_data):
+    def validate_ontology_consistency(self, domain="general"):
         """
-        Updates the knowledge graph with a validated AI decision.
+        Checks for contradictions or inconsistencies in stored ontology rules for a given domain.
 
         Args:
-            task_id (str): Task ID associated with the decision.
-            decision_data (dict): The updated decision data.
-        """
-        try:
-            with self.driver.session() as session:
-                session.run(
-                    """
-                    MATCH (t:Task {id: $task_id})
-                    SET t.decision_data = $decision_data
-                    """,
-                    task_id=task_id,
-                    decision_data=decision_data
-                )
-                logger.info(f"Updated knowledge graph for task {task_id}.")
-        except Exception as e:
-            logger.error(f"Error updating knowledge graph for task {task_id}: {e}")
+            domain (str): The domain to check for inconsistencies.
 
-    def visualize_knowledge_graph(self, save_path=None):
-        """
-        Fetches decision data from Neo4j and visualizes the knowledge graph.
-
-        Args:
-            save_path (str): Optional file path to save the visualization.
+        Returns:
+            dict: Summary of inconsistencies found.
         """
         try:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (t:Task)-[r:HAS_REVISION]->(rev:Revision)
-                    RETURN t.id AS task, rev.previous AS previous, rev.new AS new, rev.reason AS reason
-                    """
+                    MATCH (r1:OntologyRule)-[:CONTRADICTS]->(r2:OntologyRule)
+                    WHERE r1.domain = $domain AND r2.domain = $domain
+                    RETURN r1.cnl_rule AS rule1, r2.cnl_rule AS rule2
+                    """,
+                    domain=domain
                 )
+                inconsistencies = [{"rule1": record["rule1"], "rule2": record["rule2"]} for record in result]
 
-                graph_data = [
-                    {"task": record["task"], "previous": record["previous"], "new": record["new"], "reason": record["reason"]}
-                    for record in result
-                ]
-                logger.info(f"Fetched {len(graph_data)} decision revisions from Neo4j.")
-
-                # Create graph visualization
-                graph = nx.DiGraph()
-                for entry in graph_data:
-                    graph.add_edge(entry["previous"], entry["new"], label=entry["reason"])
-
-                plt.figure(figsize=(12, 8))
-                pos = nx.spring_layout(graph)
-                nx.draw(graph, pos, with_labels=True, node_size=700, node_color="lightblue", font_size=10, font_weight="bold")
-                nx.draw_networkx_edge_labels(graph, pos, edge_labels={(u, v): d["label"] for u, v, d in graph.edges(data=True)})
-
-                if save_path:
-                    plt.savefig(save_path)
-                    logger.info(f"Graph visualization saved to {save_path}.")
+                if inconsistencies:
+                    logger.warning(f"Found {len(inconsistencies)} inconsistencies in domain '{domain}'.")
+                    return {"status": "inconsistent", "conflicts": inconsistencies}
                 else:
-                    plt.show()
+                    logger.info(f"Ontology consistency check passed for domain '{domain}'.")
+                    return {"status": "consistent"}
         except Exception as e:
-            logger.error(f"Error visualizing knowledge graph: {e}")
+            logger.error(f"Error validating ontology consistency: {e}")
+            return {"status": "error"}
+
+    def store_domain_ontology(self, rule_id, cnl_rule, prolog_rule, domain):
+        """
+        Stores an ontology rule in the specified domain.
+
+        Args:
+            rule_id (str): Unique identifier for the rule.
+            cnl_rule (str): Human-readable ontology definition.
+            prolog_rule (str): Prolog equivalent of the ontology.
+            domain (str): Domain of the ontology.
+        """
+        self.store_ontology(rule_id, cnl_rule, prolog_rule, domain=domain)
+
+    def retrieve_domain_ontology(self, domain):
+        """
+        Retrieves ontology rules for a specified domain.
+
+        Args:
+            domain (str): The domain to fetch ontology rules.
+
+        Returns:
+            list: Ontology rules.
+        """
+        return self.retrieve_ontology(domain=domain)
+
+    def cross_domain_analysis(self, domain1, domain2):
+        """
+        Analyzes connections between two different ontology domains.
+
+        Args:
+            domain1 (str): First ontology domain.
+            domain2 (str): Second ontology domain.
+
+        Returns:
+            list: Cross-domain relationships found.
+        """
+        try:
+            with self.driver.session() as session:
+                result = session.run(
+                    """
+                    MATCH (r1:OntologyRule)-[r]->(r2:OntologyRule)
+                    WHERE r1.domain = $domain1 AND r2.domain = $domain2
+                    RETURN r1.cnl_rule AS rule1, r2.cnl_rule AS rule2, type(r) AS relationship
+                    """,
+                    domain1=domain1, domain2=domain2
+                )
+                connections = [{"rule1": record["rule1"], "rule2": record["rule2"], "relationship": record["relationship"]}
+                               for record in result]
+
+                logger.info(f"Found {len(connections)} cross-domain relationships between '{domain1}' and '{domain2}'.")
+                return connections
+        except Exception as e:
+            logger.error(f"Error in cross-domain analysis: {e}")
+            return []
 
 if __name__ == "__main__":
     graph_rag = GraphRAG()
 
-    # Example: Store an AI decision
-    graph_rag.store_ai_decision("task_123", {"outcome": "approve"}, trust_score=0.85)
+    # Example: Store a legal ontology rule
+    rule_id = "legal_rule_001"
+    cnl_rule = "A contract is a legally binding agreement between two or more parties."
+    prolog_rule = "contract(X, Y) :- legally_binding_agreement(X, Y)."
 
-    # Example: Log a decision revision
-    graph_rag.track_decision_revision("task_123", "approve", "deny", "Counterfactual testing failed.")
+    graph_rag.store_domain_ontology(rule_id, cnl_rule, prolog_rule, domain="legal")
 
-    # Example: Retrieve decision history
-    history = graph_rag.query_ai_decision_history("task_123")
-    print("Decision History:", history)
+    # Example: Store a healthcare ontology rule
+    rule_id = "healthcare_rule_001"
+    cnl_rule = "A vaccine is a preventive treatment that helps protect against infectious diseases."
+    prolog_rule = "vaccine(X) :- preventive_treatment(X), protects_against(infectious_diseases)."
 
-    # Example: Update knowledge graph
-    graph_rag.update_knowledge_graph("task_123", {"outcome": "deny"})
+    graph_rag.store_domain_ontology(rule_id, cnl_rule, prolog_rule, domain="healthcare")
 
-    # Example: Visualize the knowledge graph
-    graph_rag.visualize_knowledge_graph(save_path="decision_graph.png")
+    # Example: Retrieve stored legal ontology rules
+    legal_rules = graph_rag.retrieve_domain_ontology(domain="legal")
+    print("Retrieved Legal Rules:", legal_rules)
+
+    # Example: Validate ontology consistency for healthcare
+    consistency_report = graph_rag.validate_ontology_consistency(domain="healthcare")
+    print("Ontology Consistency Report (Healthcare):", consistency_report)
+
+    # Example: Cross-domain analysis between legal and healthcare
+    connections = graph_rag.cross_domain_analysis(domain1="legal", domain2="healthcare")
+    print("Cross-Domain Relationships (Legal ↔ Healthcare):", connections)
 
     graph_rag.close()

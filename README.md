@@ -1,139 +1,211 @@
-# ARC Trainer Documentation
+# ARC Trainer System - Deep Dive Documentation
 
-## Overview
-The ARC Trainer system is designed to solve ARC (Abstraction and Reasoning Corpus) tasks by leveraging language games, Prolog reasoning, machine learning, and a Neo4j-backed knowledge graph. It supports dynamic rule generation, validation, and fine-tuning for generalization.
-
----
-
-## Core Components
-
-### 1. Frontend
-- **index.html**: User interface for interacting with ARC tasks.
-- **js/common.js**: Shared utilities for grid manipulation.
-- **js/testing_interface.js**: Handles user inputs and task testing.
-- **js/language_game.js**: Implements frontend logic for language games.
-- **css/common.css**: General styles for the interface.
-- **css/testing_interface.css**: Styles specific to ARC task interactions.
-
-### 2. Backend
-#### Core Functionality
-- **app.py**: Main Flask application for routing and API handling.
-- **graph_rag.py**: Neo4j-backed Knowledge Graph management.
-- **language_game.py**: Handles reasoning and logic for language games.
-- **grid.py**: Manages grid transformations and processing.
-- **llm_client.py**: Interfaces with an LLM for reasoning and explanation generation.
-
-#### New Modules
-- **prolog_rule_generator.py**: Dynamically generates, validates, and stores Prolog rules.
-- **counterexample_finder.py**: Identifies counterexamples for rule refinement.
-- **kg_visualizer.py**: Visualizes the knowledge graph using NetworkX and Matplotlib.
-- **metrics_dashboard.py**: Provides system and task performance metrics through an API.
-- **language_game_trainer.py**: Trains machine learning models for specific language games.
-- **llm_fine_tuner.py**: Fine-tunes pre-trained language models on ARC-specific tasks.
-- **user_feedback.py**: Collects and processes user feedback for continuous improvement.
-- **task_manager.py**: Manages task submission, processing, and status tracking.
+## 🚀 Introduction
+The **ARC Trainer System** is an **AI-driven ontology processing framework** that integrates:
+- **Ontology Rule Processing** (Legal, Healthcare, AI Ethics, Finance, Education, Warfare)
+- **Neo4j Knowledge Graphs** for structured ontology storage
+- **Prolog-based reasoning engine** for validation & rule learning
+- **AI-Driven Refinement** using LLMs (GPT-4)
+- **Multi-Format Ontology Export** (CSV, JSON, GraphML, Neo4j)
 
 ---
 
-## How to Use the ARC Trainer
-
-### 1. Setup
-#### Requirements:
-- **Docker**: Install Docker for containerized deployment.
-- **Python**: Version 3.9+.
-
-#### Steps:
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-repo/ARC_Trainer.git
-   cd ARC_Trainer
-   ```
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. **Configure the environment**:
-   - Update `config.json` with Neo4j credentials and other settings.
-
-4. **Start services using Docker Compose**:
-   ```bash
-   docker-compose up --build
-   ```
-
-### 2. Workflow
-1. **Submit Tasks**:
-   - Use the Task Manager API (`POST /tasks`) to submit ARC tasks.
-
-2. **Process Tasks**:
-   - Monitor task progress through the Task Manager (`GET /tasks/<task_id>`).
-
-3. **Refine Rules**:
-   - Identify rule failures with the Counterexample Finder.
-   - Update Prolog rules using the Rule Generator.
-
-4. **Train Models**:
-   - Train language games with `language_game_trainer.py`.
-   - Fine-tune LLMs with `llm_fine_tuner.py`.
-
-5. **Feedback Integration**:
-   - Collect user feedback via the User Feedback API.
-   - Incorporate feedback into rules and models.
-
-6. **Visualize Knowledge**:
-   - Use `kg_visualizer.py` to visualize relationships and dependencies.
+## 📌 Features
+✔ **AI-Powered Ontology Learning**  
+✔ **Multi-Domain Support** (Legal, Healthcare, AI Ethics, Finance, Education, Warfare)  
+✔ **CNL-to-Prolog Conversion**  
+✔ **Graph-Based Storage & Retrieval**  
+✔ **Counterexample Generation & Refinement**  
+✔ **User Feedback-Driven Rule Corrections**  
+✔ **Real-Time API Endpoints for Rule Processing**  
 
 ---
 
-## API Reference
-### Task Manager
-- **POST /tasks**: Submit a task.
-- **GET /tasks/<task_id>**: Retrieve task status.
+## 🤖 What is Controlled Natural Language (CNL)?
+### **CNL Overview**
+Controlled Natural Language (CNL) is a simplified subset of natural language that is structured for easy processing by machines **while remaining human-readable**.  
+- Example: **"A contract is a legally binding agreement between two or more parties."**  
+- Converted to Prolog:  
+  ```prolog
+  contract(X, Y) :- legally_binding_agreement(X, Y).
+  ```
 
-### User Feedback
-- **POST /feedback**: Submit user feedback.
-- **GET /feedback/<session_id>**: Retrieve feedback for a session.
+### **Why CNL Matters?**
+✔ **Bridges human language & AI**  
+✔ **Ensures logical consistency**  
+✔ **Easier for non-technical users to define rules**  
 
-### Metrics Dashboard
-- **GET /metrics/tasks**: Fetch task metrics.
-- **GET /metrics/system**: Fetch system performance metrics.
-
----
-
-## Development Workflow
-1. **Frontend Changes**:
-   - Update `js` or `css` files for UI improvements.
-   - Test changes locally by running `index.html` in a browser.
-
-2. **Backend Updates**:
-   - Update Python modules as needed.
-   - Use `pytest` for testing backend changes.
-
-3. **Knowledge Graph**:
-   - Test Neo4j queries using the Neo4j browser.
-   - Visualize changes with `kg_visualizer.py`.
-
-4. **LLM Integration**:
-   - Fine-tune models and validate outputs with real tasks.
+### **How CNL Works in ARC Trainer?**
+1️⃣ **User submits a CNL ontology rule**  
+2️⃣ **LLM converts it into Prolog logic**  
+3️⃣ **Ontology system stores and validates the rule**  
+4️⃣ **The system refines rules based on feedback & contradictions**  
 
 ---
 
-## Future Enhancements
-- Integrate Graph Neural Networks for enhanced reasoning.
-- Add real-time feedback loops for dynamic rule adjustments.
-- Improve scalability with distributed task processing.
+## 🛠️ Installation Guide
+
+### **1️⃣ Prerequisites**
+Ensure you have the following installed:
+- Python 3.8+
+- Neo4j (Graph Database)
+- OpenAI API Key (For LLM Processing)
+
+### **2️⃣ Clone the Repository**
+```bash
+git clone https://github.com/your-repo/ARC_Trainer.git
+cd ARC_Trainer
+```
+
+### **3️⃣ Install Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+### **4️⃣ Set Up Environment Variables**
+Rename the `.env.example` file to `.env` and update your credentials:
+```bash
+cp .env.example .env
+nano .env  # Edit and update your credentials
+```
+
+### **5️⃣ Start Neo4j**
+```bash
+neo4j start
+```
+
+### **6️⃣ Run the Application**
+```bash
+python task_manager.py
+```
 
 ---
 
-## Troubleshooting
-### Common Issues
-- **Neo4j Connection**:
-  - Ensure Neo4j is running and reachable at the configured host and port.
-- **Task Failures**:
-  - Check logs for task-specific errors.
-  - Validate input formats and API payloads.
-- **Rule Validation Issues**:
-  - Use the Counterexample Finder to debug failing rules.
+## 📡 API Endpoints
+
+### 🔹 **1. Submit an Ontology Rule**
+- **Endpoint:** `POST /tasks`
+- **Description:** Stores a new ontology rule in Neo4j.
+- **Request Example:**
+```json
+{
+    "cnl_rule": "A contract is a legally binding agreement between two or more parties.",
+    "domain": "legal"
+}
+```
+- **Response Example:**
+```json
+{
+    "task_id": "123e4567-e89b-12d3-a456-426614174000",
+    "status": "queued",
+    "prolog_rule": "contract(X, Y) :- legally_binding_agreement(X, Y)."
+}
+```
 
 ---
 
-For questions or support, contact the development team.
+### 🔹 **2. Retrieve Ontology Rules**
+- **Endpoint:** `GET /tasks/{task_id}`
+- **Description:** Fetches the status and details of an ontology rule.
+- **Response Example:**
+```json
+{
+    "status": "validated",
+    "cnl_rule": "A contract is a legally binding agreement between two or more parties.",
+    "prolog_rule": "contract(X, Y) :- legally_binding_agreement(X, Y).",
+    "domain": "legal"
+}
+```
+
+---
+
+### 🔹 **3. Validate Ontology Rule**
+- **Endpoint:** `POST /validate_rule`
+- **Description:** Checks if an ontology rule is logically consistent.
+- **Request Example:**
+```json
+{
+    "rule": "contract(X, Y) :- legally_binding_agreement(X, Y)."
+}
+```
+- **Response Example:**
+```json
+{
+    "status": "valid"
+}
+```
+
+---
+
+### 🔹 **4. Submit User Feedback**
+- **Endpoint:** `POST /feedback`
+- **Description:** Allows users to suggest ontology rule corrections.
+- **Request Example:**
+```json
+{
+    "rule_id": "legal_rule_001",
+    "feedback_text": "This rule should specify 'written agreements only.'",
+    "user_id": "user_123",
+    "domain": "legal"
+}
+```
+
+---
+
+### 🔹 **5. Export Ontology Data**
+- **Endpoint:** `GET /export`
+- **Query Parameters:**  
+  - `domain` (e.g., `legal`, `healthcare`)  
+  - `format` (csv, json, graphml, neo4j)
+- **Example:**  
+```bash
+curl "http://localhost:5005/export?domain=ai_ethics&format=json"
+```
+
+---
+
+## 📊 Metrics Dashboard
+
+### 🔹 **View Ontology Analytics**
+- **Endpoint:** `GET /metrics`
+- **Tracks:**
+  - Rule updates per domain
+  - Feedback activity (pending vs processed)
+  - Rule validation pass/fail rates
+
+---
+
+## 🔧 Advanced Configuration
+
+### **`.env` Configuration Example**
+```ini
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your_neo4j_password
+OPENAI_API_KEY=your_openai_api_key
+ONTOLOGY_DOMAINS=legal,healthcare,education,ai_ethics,finance,warfare,general
+EXPORT_DIR=exports/
+LOG_LEVEL=INFO
+```
+
+---
+
+## 🤝 Contributing
+We welcome contributions! To contribute:  
+1️⃣ Fork the repository  
+2️⃣ Create a feature branch (`git checkout -b feature-name`)  
+3️⃣ Commit changes (`git commit -m "Added feature"`)  
+4️⃣ Push the branch (`git push origin feature-name`)  
+5️⃣ Open a pull request  
+
+---
+
+## 📝 License
+This project is licensed under the **Apache 2.0 License**.  
+
+---
+
+## 📞 Contact
+For support, reach out to **richard_gillespie@live.com**.  
+
+🚀 **Happy Ontology Engineering!**  

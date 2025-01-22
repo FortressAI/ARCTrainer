@@ -1,12 +1,12 @@
 from neo4j import GraphDatabase
 from loguru import logger
-from graph_rag import GraphRAG
-from user_feedback import UserFeedback
+from llm_client import LLMClient
+from prolog_rule_generator import PrologRuleGenerator
 
 class LearningAgent:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
         """
-        Initializes the Learning Agent with Neo4j and auxiliary components.
+        Initializes the Learning Agent with Neo4j for ontology storage and refinement.
 
         Args:
             uri (str): URI for connecting to Neo4j.
@@ -14,182 +14,158 @@ class LearningAgent:
             password (str): Password for Neo4j authentication.
         """
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
-        self.graph_rag = GraphRAG(uri, user, password)
-        self.user_feedback = UserFeedback(uri, user, password)
-        logger.info("LearningAgent initialized.")
+        self.llm_client = LLMClient()
+        self.prolog_generator = PrologRuleGenerator()
+
+        logger.info("LearningAgent initialized with multi-domain ontology support.")
 
     def close(self):
-        """Closes all connections to the Neo4j database."""
+        """Closes the connection to the Neo4j database."""
         self.driver.close()
-        self.graph_rag.close()
-        self.user_feedback.close()
 
-    def analyze_session(self, session_id):
+    def refine_ontology_rule(self, rule_id, domain):
         """
-        Analyzes a session and updates the knowledge graph based on feedback and task results.
+        Refines an ontology rule based on AI-driven learning.
 
         Args:
-            session_id (str): Unique session identifier.
-        """
-        try:
-            feedback = self.user_feedback.get_feedback(session_id)
-            if not feedback:
-                logger.warning(f"No feedback found for session {session_id}.")
-                return
+            rule_id (str): Unique identifier of the ontology rule.
+            domain (str): Ontology category (e.g., legal, healthcare, AI ethics, finance).
 
-            for entry in feedback:
-                task_id = entry.get("task_id")
-                task_data = entry.get("task_data")
-                result = entry.get("result")
-
-                if task_id and task_data and result:
-                    self.graph_rag.update_knowledge(task_id, task_data, result)
-
-            logger.info(f"Session {session_id} analyzed and knowledge graph updated.")
-        except Exception as e:
-            logger.error(f"Error analyzing session {session_id}: {e}")
-
-    def refine_task_logic(self, task_id):
-        """
-        Refines task logic based on analysis of counterexamples and performance metrics.
-
-        Args:
-            task_id (str): Unique task identifier.
+        Returns:
+            dict: Updated rule details.
         """
         try:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (t:Task {id: $task_id})-[:HAS_COUNTEREXAMPLE]->(ce:Counterexample)
-                    RETURN t.data AS data, ce.grid AS grid, ce.transformed_grid AS transformed_grid
+                    MATCH (r:OntologyRule {id: $rule_id}) WHERE r.domain = $domain
+                    RETURN r.cnl_rule AS cnl_rule, r.prolog_rule AS prolog_rule
                     """,
-                    task_id=task_id
+                    rule_id=rule_id, domain=domain
                 )
 
-                for record in result:
-                    task_data = record["data"]
-                    grid = record["grid"]
-                    transformed_grid = record["transformed_grid"]
+                record = result.single()
+                if not record:
+                    return {"error": "Ontology rule not found"}
 
-                    # Analyze and refine logic here (implement specific refinement logic)
-                    logger.info(f"Refining task logic for task {task_id} with grid {grid}.")
+                cnl_rule = record["cnl_rule"]
+                prolog_rule = record["prolog_rule"]
 
-            logger.info(f"Task {task_id} logic refinement complete.")
-        except Exception as e:
-            logger.error(f"Error refining task logic for task {task_id}: {e}")
+                # AI-powered improvement of the ontology rule
+                refined_cnl = self.llm_client.query_llm(f"Improve this ontology definition: {cnl_rule}")
+                refined_prolog = self.llm_client.query_llm(f"Convert this improved definition into Prolog: {refined_cnl['response']}")
 
-    def integrate_user_feedback(self, task_id):
-        """
-        Integrates user feedback to improve AI reasoning and update task rules.
-
-        Args:
-            task_id (str): Task ID to update.
-        """
-        try:
-            with self.driver.session() as session:
-                result = session.run(
+                # Store the updated rule
+                session.run(
                     """
-                    MATCH (t:Task {id: $task_id})-[:RECEIVED_FEEDBACK]->(f:Feedback)
-                    WHERE f.correction IS NOT NULL
-                    RETURN f.correction AS correction
+                    MATCH (r:OntologyRule {id: $rule_id})
+                    SET r.cnl_rule = $refined_cnl, r.prolog_rule = $refined_prolog
                     """,
-                    task_id=task_id
+                    rule_id=rule_id, refined_cnl=refined_cnl["response"], refined_prolog=refined_prolog["response"]
                 )
 
-                corrections = [record["correction"] for record in result if record["correction"]]
+                logger.info(f"Ontology rule {rule_id} refined in domain '{domain}'.")
 
-                if corrections:
-                    for correction in corrections:
-                        session.run(
-                            """
-                            MATCH (r:Rule)
-                            WHERE r.definition CONTAINS $correction
-                            SET r.causal_validation = true
-                            """,
-                            correction=correction
-                        )
-                        logger.info(f"Applied user correction to rule: {correction}")
+                return {
+                    "rule_id": rule_id,
+                    "cnl_rule": refined_cnl["response"],
+                    "prolog_rule": refined_prolog["response"]
+                }
 
-                    logger.info(f"Updated AI rules based on user feedback for task {task_id}.")
         except Exception as e:
-            logger.error(f"Error integrating user feedback for task {task_id}: {e}")
+            logger.error(f"Error refining ontology rule {rule_id}: {e}")
+            return {"error": "Ontology refinement failed"}
 
-    def retrain_model_based_on_feedback(self):
+    def analyze_session(self, domain="general"):
         """
-        Uses aggregated feedback data to retrain AI models and improve learning.
+        Analyzes ontology rules for contradictions and inconsistencies in a given domain.
+
+        Args:
+            domain (str): Ontology category to analyze.
+
+        Returns:
+            dict: Summary of inconsistencies found.
         """
         try:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (f:Feedback)
-                    RETURN f.feedback AS feedback, f.rating AS rating, f.correction AS correction
-                    """
+                    MATCH (r1:OntologyRule)-[:CONTRADICTS]->(r2:OntologyRule)
+                    WHERE r1.domain = $domain AND r2.domain = $domain
+                    RETURN r1.cnl_rule AS rule1, r2.cnl_rule AS rule2
+                    """,
+                    domain=domain
                 )
 
-                feedback_data = []
-                for record in result:
-                    feedback_data.append({
-                        "feedback": record["feedback"],
-                        "rating": record["rating"],
-                        "correction": record["correction"]
-                    })
+                inconsistencies = [{"rule1": record["rule1"], "rule2": record["rule2"]} for record in result]
 
-                if not feedback_data:
-                    logger.info("No feedback available for retraining.")
-                    return
-
-                # Logic to process feedback and adjust model parameters
-                logger.info(f"Retraining model with {len(feedback_data)} user feedback entries.")
-
-                # (Optional: Implement actual model retraining here)
-
-                logger.info("Model retraining complete.")
+                if inconsistencies:
+                    logger.warning(f"Found {len(inconsistencies)} inconsistencies in domain '{domain}'.")
+                    return {"status": "inconsistent", "conflicts": inconsistencies}
+                else:
+                    logger.info(f"Ontology consistency check passed for domain '{domain}'.")
+                    return {"status": "consistent"}
         except Exception as e:
-            logger.error(f"Error retraining model based on feedback: {e}")
+            logger.error(f"Error analyzing ontology session: {e}")
+            return {"status": "error"}
 
-    def update_knowledge_graph_from_feedback(self, session_id):
+    def validate_and_store_rule(self, cnl_rule, domain):
         """
-        Updates knowledge graph with validated corrections from user feedback.
+        Validates and stores a new ontology rule in the system.
 
         Args:
-            session_id (str): The session containing feedback for updating the graph.
+            cnl_rule (str): Human-readable ontology rule.
+            domain (str): Ontology domain.
+
+        Returns:
+            dict: Validation and storage result.
         """
         try:
-            feedback_entries = self.user_feedback.get_feedback(session_id)
-            if not feedback_entries:
-                logger.info(f"No feedback available for session {session_id}.")
-                return
+            prolog_rule = self.llm_client.query_llm(f"Convert this into Prolog: {cnl_rule}")
+            if not prolog_rule.get("response"):
+                return {"error": "Prolog conversion failed"}
 
+            rule_id = f"{domain}_rule_{hash(cnl_rule) % 100000}"
             with self.driver.session() as session:
-                for entry in feedback_entries:
-                    correction = entry.get("correction")
-                    if correction:
-                        session.run(
-                            """
-                            MATCH (r:Rule)
-                            WHERE r.definition CONTAINS $correction
-                            SET r.causal_validation = true
-                            """,
-                            correction=correction
-                        )
-                        logger.info(f"Integrated user feedback into the knowledge graph: {correction}")
+                session.run(
+                    """
+                    CREATE (r:OntologyRule {id: $rule_id, cnl_rule: $cnl_rule, prolog_rule: $prolog_rule, domain: $domain})
+                    """,
+                    rule_id=rule_id, cnl_rule=cnl_rule, prolog_rule=prolog_rule["response"], domain=domain
+                )
 
-            logger.info(f"Knowledge graph updated for session {session_id}.")
+            logger.info(f"New ontology rule stored under domain '{domain}'.")
+
+            return {
+                "rule_id": rule_id,
+                "cnl_rule": cnl_rule,
+                "prolog_rule": prolog_rule["response"],
+                "status": "stored"
+            }
+
         except Exception as e:
-            logger.error(f"Error updating knowledge graph from feedback for session {session_id}: {e}")
+            logger.error(f"Error validating and storing rule: {e}")
+            return {"error": "Ontology rule storage failed"}
 
 if __name__ == "__main__":
-    agent = LearningAgent()
+    learning_agent = LearningAgent()
 
-    # Example usage
-    session_id = "example_session_id"
-    task_id = "example_task_id"
+    # Example: Store a new legal rule
+    cnl_rule = "A contract is a legally binding agreement between two or more parties."
+    response = learning_agent.validate_and_store_rule(cnl_rule, domain="legal")
+    print(response)
 
-    agent.analyze_session(session_id)
-    agent.refine_task_logic(task_id)
-    agent.integrate_user_feedback(task_id)
-    agent.retrain_model_based_on_feedback()
-    agent.update_knowledge_graph_from_feedback(session_id)
+    # Example: Store a healthcare rule
+    cnl_rule = "Vaccines are preventive treatments that protect against infectious diseases."
+    response = learning_agent.validate_and_store_rule(cnl_rule, domain="healthcare")
+    print(response)
 
-    agent.close()
+    # Example: Refine an existing ontology rule in AI Ethics
+    refinement_result = learning_agent.refine_ontology_rule(rule_id="ai_ethics_rule_002", domain="ai_ethics")
+    print(refinement_result)
+
+    # Example: Analyze contradictions in finance rules
+    consistency_report = learning_agent.analyze_session(domain="finance")
+    print(consistency_report)
+
+    learning_agent.close()

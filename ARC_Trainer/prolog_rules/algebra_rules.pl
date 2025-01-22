@@ -1,4 +1,5 @@
 % Domain-specific rules for IMO Algebra problems
+% Now includes human-readable mappings (Controlled Natural Language - CNL)
 
 % --- Algebraic Principles and Theorems ---
 
@@ -104,9 +105,20 @@ arithmetic_mean(Term1, Term2, Result) :-
 geometric_mean(Term1, Term2, Result) :-
     Result is sqrt(Term1 * Term2).
 
+% --- Controlled Natural Language (CNL) Mappings ---
+
+% Converts a human-readable statement into a Prolog rule.
+cnl_to_prolog("A customer is a person who makes a purchase.", customer(X) :- person(X), purchases(X, Y)).
+cnl_to_prolog("The AM-GM inequality states that the arithmetic mean is always greater than or equal to the geometric mean.", am_gm(X, Y) :- arithmetic_mean(X, Y, AM), geometric_mean(X, Y, GM), AM >= GM).
+
+% Converts a Prolog rule into a human-readable statement.
+prolog_to_cnl(customer(X) :- person(X), purchases(X, Y), "A customer is a person who makes a purchase.").
+prolog_to_cnl(am_gm(X, Y) :- arithmetic_mean(X, Y, AM), geometric_mean(X, Y, GM), AM >= GM, "The AM-GM inequality states that the arithmetic mean is always greater than or equal to the geometric mean.").
+
 % --- Example Usage ---
 
 % validate_statement("The solution to the equation 2x + 5 = 9 is x = 2.", intent_data{primary_intent: solve_problem}).
 % simplify_expression("2*x + x", Simplified). -> Simplified = "3*x"
 % factor_polynomial("x^2 - 4", Factors). -> Factors = "(x - 2)(x + 2)"
 % expand_expression("(x + 1)(x - 1)", Expanded). -> Expanded = "x^2 - 1"
+

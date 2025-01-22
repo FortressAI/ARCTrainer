@@ -1,4 +1,5 @@
 % Domain-specific rules for the "Education" domain
+% Now includes human-readable mappings (Controlled Natural Language - CNL)
 
 % --- Main Entry Point ---
 
@@ -92,6 +93,20 @@ check_relevance_and_accuracy(Query) :-
 % Checks if the subject is part of the educational domain.
 educational_subject(Subject) :-
     member(Subject, ["math", "science", "history", "literature", "research", "study"]).
+
+% --- Controlled Natural Language (CNL) Mappings ---
+
+% Converts a human-readable statement into a Prolog rule.
+cnl_to_prolog("A teacher provides knowledge and guidance to students.", teacher(X) :- provides_knowledge(X), guides_students(X)).
+cnl_to_prolog("Mathematics is a subject that involves numbers, logic, and problem-solving.", subject(math) :- involves(numbers), involves(logic), involves(problem_solving)).
+cnl_to_prolog("History is the study of past events and civilizations.", subject(history) :- studies(past_events), studies(civilizations)).
+cnl_to_prolog("Literature includes written works such as poetry, novels, and plays.", subject(literature) :- includes(poetry), includes(novels), includes(plays)).
+
+% Converts a Prolog rule into a human-readable statement.
+prolog_to_cnl(teacher(X) :- provides_knowledge(X), guides_students(X), "A teacher provides knowledge and guidance to students.").
+prolog_to_cnl(subject(math) :- involves(numbers), involves(logic), involves(problem_solving), "Mathematics is a subject that involves numbers, logic, and problem-solving.").
+prolog_to_cnl(subject(history) :- studies(past_events), studies(civilizations), "History is the study of past events and civilizations.").
+prolog_to_cnl(subject(literature) :- includes(poetry), includes(novels), includes(plays), "Literature includes written works such as poetry, novels, and plays.").
 
 % --- Example Usage ---
 

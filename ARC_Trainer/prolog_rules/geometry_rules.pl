@@ -1,4 +1,5 @@
 % Domain-specific rules for geometry reasoning
+% Now includes human-readable mappings (Controlled Natural Language - CNL)
 
 % --- Geometric Knowledge Representation ---
 
@@ -79,6 +80,18 @@ check_geometry_relevance(Query) :-
     Query = query{shape: Shape, property: Property},
     shape(Shape, _, Properties),
     member(Property, Properties).
+
+% --- Controlled Natural Language (CNL) Mappings ---
+
+% Converts a human-readable statement into a Prolog rule.
+cnl_to_prolog("A square has four equal sides and four right angles.", shape(square, quadrilateral, [four_equal_sides, four_right_angles])).
+cnl_to_prolog("A right triangle has one right angle.", shape(right_triangle, triangle, [one_right_angle])).
+cnl_to_prolog("A circle has a constant radius.", shape(circle, conic, [constant_radius])).
+
+% Converts a Prolog rule into a human-readable statement.
+prolog_to_cnl(shape(square, quadrilateral, [four_equal_sides, four_right_angles]), "A square has four equal sides and four right angles.").
+prolog_to_cnl(shape(right_triangle, triangle, [one_right_angle]), "A right triangle has one right angle.").
+prolog_to_cnl(shape(circle, conic, [constant_radius]), "A circle has a constant radius.").
 
 % --- Example Usage ---
 

@@ -2,13 +2,16 @@ from flask import Flask, request, jsonify
 from neo4j import GraphDatabase
 from loguru import logger
 import uuid
+from llm_client import LLMClient
+from prolog_rule_generator import PrologRuleGenerator
+from learning_agent import LearningAgent
 
 app = Flask(__name__)
 
 class TaskManager:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
         """
-        Initializes the Task Manager with Neo4j.
+        Initializes the Task Manager with Neo4j and Prolog integration.
 
         Args:
             uri (str): URI for connecting to Neo4j.
@@ -16,152 +19,128 @@ class TaskManager:
             password (str): Password for Neo4j authentication.
         """
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
-        logger.info("TaskManager initialized.")
+        self.llm_client = LLMClient()
+        self.prolog_generator = PrologRuleGenerator()
+        self.learning_agent = LearningAgent()
+
+        logger.info("TaskManager initialized with multi-domain ontology support.")
 
     def close(self):
         """Closes the connection to the Neo4j database."""
         self.driver.close()
 
-    def validate_task_with_knowledge_graph(self, task_id):
-        """
-        Validates a task by checking the AI knowledge graph for contradictions.
-
-        Args:
-            task_id (str): Unique identifier for the task.
-
-        Returns:
-            bool: True if the task is valid, False otherwise.
-        """
-        try:
-            with self.driver.session() as session:
-                result = session.run(
-                    """
-                    MATCH (t:Task {id: $task_id})-[:USES_RULE]->(r:Rule)
-                    OPTIONAL MATCH (c:Contradiction)-[:CONFLICTS_WITH]->(r)
-                    RETURN COUNT(c) AS contradictions
-                    """,
-                    task_id=task_id
-                )
-
-                record = result.single()
-                if record and record["contradictions"] > 0:
-                    logger.warning(f"Task {task_id} conflicts with existing AI knowledge.")
-                    return False
-
-                logger.info(f"Task {task_id} passed knowledge graph validation.")
-                return True
-        except Exception as e:
-            logger.error(f"Error validating task {task_id} with knowledge graph: {e}")
-            return False
-
-    def track_task_decision_path(self, task_id, decision):
-        """
-        Logs the AI's decision-making path for a task in the knowledge graph.
-
-        Args:
-            task_id (str): Unique identifier for the task.
-            decision (dict): The AI's decision reasoning data.
-        """
-        try:
-            with self.driver.session() as session:
-                session.run(
-                    """
-                    MATCH (t:Task {id: $task_id})
-                    MERGE (d:Decision {id: $task_id, decision_data: $decision})
-                    MERGE (t)-[:RESULTED_IN]->(d)
-                    """,
-                    task_id=task_id,
-                    decision=decision
-                )
-                logger.info(f"Stored decision path for task {task_id}.")
-        except Exception as e:
-            logger.error(f"Error tracking decision path for task {task_id}: {e}")
-
     def submit_task(self, task_data):
         """
-        Submits a task to the Neo4j database, ensuring it meets AI safety requirements.
+        Submits a new ontology rule to the system.
 
         Args:
-            task_data (dict): Data for the task to be processed.
+            task_data (dict): Contains ontology rule details.
 
         Returns:
             dict: Task ID and status.
         """
         try:
             task_id = str(uuid.uuid4())
+            cnl_rule = task_data.get("cnl_rule")
+            domain = task_data.get("domain")
+
+            if not cnl_rule or not domain:
+                return {"error": "Missing ontology rule or domain."}
+
+            # Convert CNL rule to Prolog
+            prolog_response = self.llm_client.query_llm(f"Convert this into Prolog: {cnl_rule}")
+            prolog_rule = prolog_response.get("response")
+
+            if not prolog_rule:
+                logger.warning("Failed to generate Prolog rule from CNL.")
+                return {"error": "Ontology rule conversion failed"}
+
+            # Validate & Store the rule
+            validation_result = self.learning_agent.validate_and_store_rule(cnl_rule, domain)
+            if "error" in validation_result:
+                return validation_result
+
+            # Store the task metadata
             with self.driver.session() as session:
                 session.run(
                     """
-                    CREATE (t:Task {id: $task_id, status: 'queued', data: $task_data})
+                    CREATE (t:Task {id: $task_id, status: 'queued', cnl_rule: $cnl_rule, prolog_rule: $prolog_rule, domain: $domain})
                     """,
-                    task_id=task_id, task_data=task_data
+                    task_id=task_id, cnl_rule=cnl_rule, prolog_rule=prolog_rule, domain=domain
                 )
-                logger.info(f"Task {task_id} submitted successfully.")
 
-                # Validate the task using the AI knowledge graph
-                if not self.validate_task_with_knowledge_graph(task_id):
-                    session.run(
-                        """
-                        MATCH (t:Task {id: $task_id})
-                        SET t.status = 'failed'
-                        """,
-                        task_id=task_id
-                    )
-                    logger.warning(f"Task {task_id} rejected due to conflicts in AI knowledge graph.")
-                    return {"task_id": task_id, "status": "failed", "reason": "Knowledge graph conflict"}
+            logger.info(f"Task {task_id} submitted successfully for domain '{domain}'.")
+            return {"task_id": task_id, "status": "queued", "prolog_rule": prolog_rule}
 
-                # Mark as ready for execution
-                session.run(
-                    """
-                    MATCH (t:Task {id: $task_id})
-                    SET t.status = 'ready'
-                    """,
-                    task_id=task_id
-                )
-                logger.info(f"Task {task_id} passed all safety checks and is ready for execution.")
-                return {"task_id": task_id, "status": "ready"}
         except Exception as e:
             logger.error(f"Error submitting task: {e}")
-            return {"error": "Failed to submit task"}
+            return {"error": "Failed to submit ontology rule"}
 
     def get_task_status(self, task_id):
         """
-        Retrieves the status and metadata of a task from Neo4j.
+        Retrieves the status and metadata of a submitted ontology task.
 
         Args:
-            task_id (str): ID of the task.
+            task_id (str): Task ID.
 
         Returns:
-            dict: Task status and metadata if found.
+            dict: Task status and metadata.
         """
         try:
             with self.driver.session() as session:
                 result = session.run(
                     """
                     MATCH (t:Task {id: $task_id})
-                    RETURN t.status AS status, t.data AS data
+                    RETURN t.status AS status, t.cnl_rule AS cnl_rule, t.prolog_rule AS prolog_rule, t.domain AS domain
                     """,
                     task_id=task_id
                 )
+
                 record = result.single()
                 if record:
-                    logger.info(f"Task {task_id} status retrieved successfully.")
-                    return {"status": record["status"], "data": record["data"]}
+                    logger.info(f"Task {task_id} status retrieved.")
+                    return {
+                        "status": record["status"],
+                        "cnl_rule": record["cnl_rule"],
+                        "prolog_rule": record["prolog_rule"],
+                        "domain": record["domain"]
+                    }
                 else:
-                    logger.warning(f"Task {task_id} not found.")
                     return {"error": "Task not found"}
+
         except Exception as e:
             logger.error(f"Error retrieving task {task_id}: {e}")
             return {"error": "Internal server error"}
 
+    def validate_ontology_rule(self, rule):
+        """
+        Validates an ontology rule before storage.
+
+        Args:
+            rule (str): Prolog rule to validate.
+
+        Returns:
+            dict: Validation status.
+        """
+        try:
+            validation_result = self.prolog_generator.validate_rule_against_test_cases(rule, [])
+
+            if validation_result:
+                return {"status": "valid"}
+            else:
+                return {"status": "invalid", "error": "Rule did not pass validation"}
+
+        except Exception as e:
+            logger.error(f"Ontology validation failed: {e}")
+            return {"error": "Validation error"}
+
 @app.route("/tasks", methods=["POST"])
 def submit_task():
     """
-    API endpoint to submit a task.
+    API endpoint to submit an ontology rule.
     """
     try:
         task_data = request.json
-
         if not task_data:
             return jsonify({"error": "Task data is required"}), 400
 
@@ -169,6 +148,7 @@ def submit_task():
         response = manager.submit_task(task_data)
         manager.close()
         return jsonify(response), 200
+
     except Exception as e:
         logger.error(f"Error in submit_task endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
@@ -176,15 +156,37 @@ def submit_task():
 @app.route("/tasks/<task_id>", methods=["GET"])
 def get_task_status(task_id):
     """
-    API endpoint to get the status of a task.
+    API endpoint to retrieve the status of a submitted ontology task.
     """
     try:
         manager = TaskManager()
         response = manager.get_task_status(task_id)
         manager.close()
         return jsonify(response), 200
+
     except Exception as e:
         logger.error(f"Error in get_task_status endpoint: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/validate_rule", methods=["POST"])
+def validate_rule():
+    """
+    API endpoint to validate an ontology rule.
+    """
+    try:
+        data = request.json
+        rule = data.get("rule")
+
+        if not rule:
+            return jsonify({"error": "Rule is required"}), 400
+
+        manager = TaskManager()
+        response = manager.validate_ontology_rule(rule)
+        manager.close()
+        return jsonify(response), 200
+
+    except Exception as e:
+        logger.error(f"Error in validate_rule endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == "__main__":

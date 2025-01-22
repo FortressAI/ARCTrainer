@@ -1,195 +1,154 @@
+from flask import Flask, jsonify
 from neo4j import GraphDatabase
 from loguru import logger
+import redis
+
+app = Flask(__name__)
 
 class MetricsDashboard:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
+    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", redis_host="localhost", redis_port=6379):
         """
-        Initializes the Metrics Dashboard with Neo4j integration.
+        Initializes the Metrics Dashboard.
 
         Args:
             uri (str): URI for connecting to Neo4j.
             user (str): Username for Neo4j authentication.
             password (str): Password for Neo4j authentication.
+            redis_host (str): Redis server hostname.
+            redis_port (int): Redis server port.
         """
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
-        logger.info("MetricsDashboard initialized.")
+        self.redis = redis.StrictRedis(host=redis_host, port=redis_port, decode_responses=True)
+
+        logger.info("MetricsDashboard initialized for multi-domain ontology tracking.")
 
     def close(self):
         """Closes the connection to the Neo4j database."""
         self.driver.close()
 
-    def log_causal_validation(self, rule_id, success):
+    def track_ontology_updates(self):
         """
-        Logs whether a Prolog rule passed causal validation.
-
-        Args:
-            rule_id (str): Unique identifier for the rule.
-            success (bool): True if the rule passed causal validation, False otherwise.
-        """
-        try:
-            with self.driver.session() as session:
-                session.run(
-                    """
-                    MERGE (r:Rule {id: $rule_id})
-                    SET r.causal_validation = $success
-                    """,
-                    rule_id=rule_id,
-                    success=success
-                )
-                logger.info(f"Causal validation logged for rule {rule_id}: {'Passed' if success else 'Failed'}.")
-        except Exception as e:
-            logger.error(f"Error logging causal validation for rule {rule_id}: {e}")
-
-    def log_ai_trust_verification(self, query, consistency_score):
-        """
-        Logs AI-to-AI trust verification scores.
-
-        Args:
-            query (str): The query tested across multiple AI models.
-            consistency_score (float): A score between 0 and 1 indicating agreement among AI models.
-        """
-        try:
-            with self.driver.session() as session:
-                session.run(
-                    """
-                    MERGE (t:TrustCheck {query: $query})
-                    SET t.consistency_score = $consistency_score
-                    """,
-                    query=query,
-                    consistency_score=consistency_score
-                )
-                logger.info(f"Logged AI trust verification for '{query}' with score: {consistency_score}.")
-        except Exception as e:
-            logger.error(f"Error logging AI trust verification for '{query}': {e}")
-
-    def log_counterfactual_failures(self, rule_id, failure_count):
-        """
-        Logs how often a rule fails counterfactual testing.
-
-        Args:
-            rule_id (str): Unique identifier for the rule.
-            failure_count (int): Number of failed counterfactual tests.
-        """
-        try:
-            with self.driver.session() as session:
-                session.run(
-                    """
-                    MERGE (r:Rule {id: $rule_id})
-                    SET r.counterfactual_failures = coalesce(r.counterfactual_failures, 0) + $failure_count
-                    """,
-                    rule_id=rule_id,
-                    failure_count=failure_count
-                )
-                logger.info(f"Logged {failure_count} counterfactual failures for rule {rule_id}.")
-        except Exception as e:
-            logger.error(f"Error logging counterfactual failures for rule {rule_id}: {e}")
-
-    def get_causal_validation_metrics(self):
-        """
-        Retrieves all causal validation metrics.
+        Tracks the number of ontology rules updated per domain.
 
         Returns:
-            dict: Causal validation results for all logged rules.
+            dict: Count of updates per domain.
         """
         try:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (r:Rule)
-                    RETURN r.id AS rule_id, r.causal_validation AS validation
+                    MATCH (r:OntologyRule)
+                    RETURN r.domain AS domain, COUNT(r) AS total_rules
                     """
                 )
+                domain_updates = {record["domain"]: record["total_rules"] for record in result}
 
-                metrics = {record["rule_id"]: record["validation"] for record in result}
-                logger.info(f"Fetched causal validation metrics: {metrics}")
-                return metrics
+                self.redis.set("ontology_updates", str(domain_updates))
+                logger.info(f"Ontology updates tracked: {domain_updates}")
+
+                return domain_updates
         except Exception as e:
-            logger.error(f"Error fetching causal validation metrics: {e}")
-            return {}
+            logger.error(f"Error tracking ontology updates: {e}")
+            return {"error": "Failed to retrieve ontology update metrics"}
 
-    def get_ai_trust_metrics(self):
+    def track_feedback_activity(self):
         """
-        Retrieves all AI trust verification metrics.
+        Tracks user feedback activity by domain.
 
         Returns:
-            dict: AI-to-AI trust verification scores.
+            dict: Count of processed and pending feedback per domain.
         """
         try:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (t:TrustCheck)
-                    RETURN t.query AS query, t.consistency_score AS score
+                    MATCH (f:Feedback)
+                    RETURN f.domain AS domain, COUNT(f) AS total_feedback, 
+                           SUM(CASE WHEN f.status = 'processed' THEN 1 ELSE 0 END) AS processed,
+                           SUM(CASE WHEN f.status = 'pending' THEN 1 ELSE 0 END) AS pending
                     """
                 )
+                feedback_activity = {record["domain"]: {"total": record["total_feedback"], 
+                                                        "processed": record["processed"], 
+                                                        "pending": record["pending"]} 
+                                     for record in result}
 
-                metrics = {record["query"]: record["score"] for record in result}
-                logger.info(f"Fetched AI trust verification metrics: {metrics}")
-                return metrics
+                self.redis.set("feedback_activity", str(feedback_activity))
+                logger.info(f"Feedback activity tracked: {feedback_activity}")
+
+                return feedback_activity
         except Exception as e:
-            logger.error(f"Error fetching AI trust verification metrics: {e}")
-            return {}
+            logger.error(f"Error tracking feedback activity: {e}")
+            return {"error": "Failed to retrieve feedback metrics"}
 
-    def get_counterfactual_failure_metrics(self):
+    def track_rule_validation_results(self):
         """
-        Retrieves all counterfactual failure logs.
+        Tracks the number of validated ontology rules and failed validations.
 
         Returns:
-            dict: Counterfactual failure counts for rules.
+            dict: Validation pass and fail count per domain.
         """
         try:
             with self.driver.session() as session:
                 result = session.run(
                     """
-                    MATCH (r:Rule)
-                    RETURN r.id AS rule_id, r.counterfactual_failures AS failures
+                    MATCH (r:OntologyRule)
+                    RETURN r.domain AS domain, 
+                           SUM(CASE WHEN r.validated = true THEN 1 ELSE 0 END) AS validated,
+                           SUM(CASE WHEN r.validated = false THEN 1 ELSE 0 END) AS failed
                     """
                 )
+                validation_results = {record["domain"]: {"validated": record["validated"], 
+                                                         "failed": record["failed"]} 
+                                      for record in result}
 
-                metrics = {record["rule_id"]: record["failures"] for record in result if record["failures"] is not None}
-                logger.info(f"Fetched counterfactual failure metrics: {metrics}")
-                return metrics
+                self.redis.set("rule_validations", str(validation_results))
+                logger.info(f"Rule validation results tracked: {validation_results}")
+
+                return validation_results
         except Exception as e:
-            logger.error(f"Error fetching counterfactual failure metrics: {e}")
-            return {}
+            logger.error(f"Error tracking rule validation results: {e}")
+            return {"error": "Failed to retrieve rule validation metrics"}
 
-    def generate_dashboard_report(self):
+    def get_dashboard_metrics(self):
         """
-        Generates a comprehensive report of all key AI metrics.
+        Retrieves the latest stored metrics from Redis.
 
         Returns:
-            dict: Summary of AI validation, trust, and counterfactual testing.
+            dict: Latest stored ontology metrics.
         """
         try:
-            report = {
-                "causal_validation": self.get_causal_validation_metrics(),
-                "ai_trust_verification": self.get_ai_trust_metrics(),
-                "counterfactual_failures": self.get_counterfactual_failure_metrics()
+            ontology_updates = eval(self.redis.get("ontology_updates") or "{}")
+            feedback_activity = eval(self.redis.get("feedback_activity") or "{}")
+            rule_validations = eval(self.redis.get("rule_validations") or "{}")
+
+            dashboard_metrics = {
+                "ontology_updates": ontology_updates,
+                "feedback_activity": feedback_activity,
+                "rule_validations": rule_validations
             }
-            logger.info(f"Generated dashboard report: {report}")
-            return report
+
+            logger.info("Dashboard metrics retrieved successfully.")
+            return dashboard_metrics
         except Exception as e:
-            logger.error(f"Error generating dashboard report: {e}")
-            return {}
+            logger.error(f"Error retrieving dashboard metrics: {e}")
+            return {"error": "Failed to retrieve dashboard metrics"}
+
+@app.route("/metrics", methods=["GET"])
+def get_metrics():
+    """
+    API endpoint to fetch all ontology tracking metrics.
+    """
+    try:
+        manager = MetricsDashboard()
+        response = manager.get_dashboard_metrics()
+        manager.close()
+        return jsonify(response), 200
+
+    except Exception as e:
+        logger.error(f"Error in get_metrics endpoint: {e}")
+        return jsonify({"error": "Internal server error"}), 500
 
 if __name__ == "__main__":
-    dashboard = MetricsDashboard()
-
-    # Example: Log causal validation success
-    dashboard.log_causal_validation("rule_123", success=True)
-
-    # Example: Log AI-to-AI trust score
-    dashboard.log_ai_trust_verification("What causes inflation?", consistency_score=0.95)
-
-    # Example: Log counterfactual failures
-    dashboard.log_counterfactual_failures("rule_456", failure_count=3)
-
-    # Example: Fetch all metrics
-    print("Causal Validation Metrics:", dashboard.get_causal_validation_metrics())
-    print("AI Trust Verification Metrics:", dashboard.get_ai_trust_metrics())
-    print("Counterfactual Failure Metrics:", dashboard.get_counterfactual_failure_metrics())
-
-    # Example: Generate a full AI safety report
-    print("Dashboard Report:", dashboard.generate_dashboard_report())
-
-    dashboard.close()
+    logger.info("Starting Metrics Dashboard API")
+    app.run(host="0.0.0.0", port=5004)

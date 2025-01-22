@@ -1,4 +1,5 @@
 % Domain-specific rules for the "Legal" domain
+% Now includes human-readable mappings (Controlled Natural Language - CNL)
 
 % --- Main Entry Point ---
 
@@ -70,6 +71,20 @@ ensure_legal_relevance_and_accuracy(Query) :-
 % Checks if the topic is valid in the legal domain.
 legal_topic(Topic) :-
     member(Topic, ["contract law", "intellectual property", "criminal law", "civil rights", "legislation"]).
+
+% --- Controlled Natural Language (CNL) Mappings ---
+
+% Converts a human-readable statement into a Prolog rule.
+cnl_to_prolog("A contract is a legally binding agreement between two or more parties.", contract(X, Y) :- legally_binding_agreement(X, Y)).
+cnl_to_prolog("Intellectual property refers to creations of the mind such as inventions, literary works, and artistic designs.", intellectual_property(X) :- creation_of_mind(X)).
+cnl_to_prolog("A crime is an action that violates a law and is punishable by the state.", crime(X) :- violates_law(X), punishable_by_state(X)).
+cnl_to_prolog("Civil rights protect individuals from discrimination and guarantee equal treatment under the law.", civil_rights(X) :- protects_individuals(X), guarantees_equality(X)).
+
+% Converts a Prolog rule into a human-readable statement.
+prolog_to_cnl(contract(X, Y) :- legally_binding_agreement(X, Y), "A contract is a legally binding agreement between two or more parties.").
+prolog_to_cnl(intellectual_property(X) :- creation_of_mind(X), "Intellectual property refers to creations of the mind such as inventions, literary works, and artistic designs.").
+prolog_to_cnl(crime(X) :- violates_law(X), punishable_by_state(X), "A crime is an action that violates a law and is punishable by the state.").
+prolog_to_cnl(civil_rights(X) :- protects_individuals(X), guarantees_equality(X), "Civil rights protect individuals from discrimination and guarantee equal treatment under the law.").
 
 % --- Example Usage ---
 

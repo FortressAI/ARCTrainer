@@ -1,4 +1,5 @@
 % Domain-specific rules for IMO Combinatorics problems
+% Now includes human-readable mappings (Controlled Natural Language - CNL)
 
 % --- Core Combinatorial Principles ---
 
@@ -115,7 +116,24 @@ validate_result_in_statement(Statement, Result) :-
         }
     ).
 
+% --- Controlled Natural Language (CNL) Mappings ---
+
+% Converts a human-readable statement into a Prolog rule.
+cnl_to_prolog("The number of ways to arrange R objects from a set of N objects is given by permutations.", permutation(N, R, P) :- N >= R, factorial(N, F1), factorial(N - R, F2), P is F1 // F2).
+
+cnl_to_prolog("The number of ways to choose R objects from a set of N objects is given by combinations.", combination(N, R, C) :- N >= R, factorial(N, F1), factorial(R, F2), factorial(N - R, F3), C is F1 // (F2 * F3)).
+
+cnl_to_prolog("The inclusion-exclusion principle for two sets states that the union of A and B is given by A + B minus their intersection.", inclusion_exclusion(A, B, Intersection, Union) :- Union is A + B - Intersection).
+
+% Converts a Prolog rule into a human-readable statement.
+prolog_to_cnl(permutation(N, R, P) :- N >= R, factorial(N, F1), factorial(N - R, F2), P is F1 // F2, "The number of ways to arrange R objects from a set of N objects is given by permutations.").
+
+prolog_to_cnl(combination(N, R, C) :- N >= R, factorial(N, F1), factorial(R, F2), factorial(N - R, F3), C is F1 // (F2 * F3), "The number of ways to choose R objects from a set of N objects is given by combinations.").
+
+prolog_to_cnl(inclusion_exclusion(A, B, Intersection, Union) :- Union is A + B - Intersection, "The inclusion-exclusion principle for two sets states that the union of A and B is given by A + B minus their intersection.").
+
 % --- Example Usage ---
 
 % validate_statement("There are 45 ways to choose 2 elements from a set of 10.", intent_data{primary_intent: solve_problem}).
 % validate_permutation_statement("The number of permutations of 5 objects taken 3 at a time is 60.", intent_data{primary_intent: solve_problem}).
+

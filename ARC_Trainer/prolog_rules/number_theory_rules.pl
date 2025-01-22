@@ -1,4 +1,5 @@
 % Domain-specific rules for IMO Number Theory problems
+% Now includes human-readable mappings (Controlled Natural Language - CNL)
 
 % --- Core Number-Theoretic Principles ---
 
@@ -108,6 +109,18 @@ extract_numbers_from_statement(Statement, Numbers) :-
 check_number_theory_relevance(Query) :-
     Query = query{property: Property},
     member(Property, ["prime", "gcd", "lcm"]).
+
+% --- Controlled Natural Language (CNL) Mappings ---
+
+% Converts a human-readable statement into a Prolog rule.
+cnl_to_prolog("A prime number is a number greater than 1 that has no divisors other than 1 and itself.", prime(P) :- P > 3, P mod 2 =\= 0, \+ has_divisor(P, 3)).
+cnl_to_prolog("The greatest common divisor of two numbers X and Y is the largest integer that divides both X and Y.", gcd(X, Y, Gcd) :- Y > 0, R is X mod Y, gcd(Y, R, Gcd)).
+cnl_to_prolog("The least common multiple of two numbers X and Y is the smallest number that is a multiple of both X and Y.", lcm(X, Y, Lcm) :- gcd(X, Y, Gcd), Lcm is X * Y // Gcd).
+
+% Converts a Prolog rule into a human-readable statement.
+prolog_to_cnl(prime(P) :- P > 3, P mod 2 =\= 0, \+ has_divisor(P, 3), "A prime number is a number greater than 1 that has no divisors other than 1 and itself.").
+prolog_to_cnl(gcd(X, Y, Gcd) :- Y > 0, R is X mod Y, gcd(Y, R, Gcd), "The greatest common divisor of two numbers X and Y is the largest integer that divides both X and Y.").
+prolog_to_cnl(lcm(X, Y, Lcm) :- gcd(X, Y, Gcd), Lcm is X * Y // Gcd, "The least common multiple of two numbers X and Y is the smallest number that is a multiple of both X and Y.").
 
 % --- Example Usage ---
 

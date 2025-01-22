@@ -1,4 +1,5 @@
 % Domain-specific rules for the "Healthcare" domain
+% Now includes human-readable mappings (Controlled Natural Language - CNL)
 
 % --- Main Entry Point ---
 
@@ -70,6 +71,20 @@ ensure_healthcare_ethics(Query) :-
 % Checks if the topic is valid in the healthcare domain.
 healthcare_topic(Topic) :-
     member(Topic, ["symptoms", "treatment", "diseases", "nutrition", "exercise"]).
+
+% --- Controlled Natural Language (CNL) Mappings ---
+
+% Converts a human-readable statement into a Prolog rule.
+cnl_to_prolog("Symptoms are the observable effects of a disease.", symptom(X) :- disease(Y), causes(Y, X)).
+cnl_to_prolog("A treatment is a medical intervention aimed at curing or managing a disease.", treatment(T) :- disease(D), manages(T, D)).
+cnl_to_prolog("A balanced diet is essential for maintaining good health.", balanced_diet(healthy)).
+cnl_to_prolog("Regular exercise helps prevent many chronic conditions.", exercise(prevent_chronic_conditions)).
+
+% Converts a Prolog rule into a human-readable statement.
+prolog_to_cnl(symptom(X) :- disease(Y), causes(Y, X), "Symptoms are the observable effects of a disease.").
+prolog_to_cnl(treatment(T) :- disease(D), manages(T, D), "A treatment is a medical intervention aimed at curing or managing a disease.").
+prolog_to_cnl(balanced_diet(healthy), "A balanced diet is essential for maintaining good health.").
+prolog_to_cnl(exercise(prevent_chronic_conditions), "Regular exercise helps prevent many chronic conditions.").
 
 % --- Example Usage ---
 
