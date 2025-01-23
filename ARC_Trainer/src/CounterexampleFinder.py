@@ -1,183 +1,94 @@
-from neo4j import GraphDatabase
 from loguru import logger
-from pyswip import Prolog
+from neo4j import GraphDatabase
+from llm_client import LLM  # Uses LLM for near-enemy detection
 
 class CounterexampleFinder:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", prolog_files=[]):
+    def __init__(self, neo4j_uri, neo4j_user, neo4j_password):
         """
-        Initializes the Counterexample Finder with Prolog and Neo4j integration.
-
-        Args:
-            uri (str): URI for connecting to Neo4j.
-            user (str): Username for Neo4j authentication.
-            password (str): Password for Neo4j authentication.
-            prolog_files (list): List of Prolog files to load for reasoning and validation.
+        Initializes the counterexample finder with Neo4j integration.
         """
-        self.driver = GraphDatabase.driver(uri, auth=(user, password))
-        self.prolog = Prolog()
-
-        # Load Prolog rules
-        for file in prolog_files:
-            try:
-                self.prolog.consult(file)
-                logger.info(f"Loaded Prolog file: {file}")
-            except Exception as e:
-                logger.error(f"Failed to load Prolog file {file}: {e}")
+        self.driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
 
     def close(self):
         """Closes the connection to the Neo4j database."""
         self.driver.close()
 
-    def find_counterexamples(self, rule, domain_examples):
+    def find_counterexample(self, rule):
         """
-        Identifies counterexamples that fail a given rule within a specified domain.
-
-        Args:
-            rule (str): The Prolog rule to test.
-            domain_examples (list): List of examples in the form of input/output pairs.
-
-        Returns:
-            list: Counterexamples that fail the rule.
+        Generates counterexamples using Socratic questioning and counterfactual reasoning.
+        AI must justify its reasoning causally before accepting the rule.
         """
-        try:
-            self.prolog.assertz(rule)
-            logger.info(f"Asserting rule for counterexample testing: {rule}")
+        logger.info(f"Generating counterexamples for rule: {rule}")
+        counterexamples = self.generate_diverse_cases(rule)
 
-            counterexamples = []
-
-            for example in domain_examples:
-                input_data = example["input"]
-                expected_output = example["expected_output"]
-                query = f"{rule.split('(')[0]}({input_data}, Result)"
-
-                try:
-                    result = list(self.prolog.query(query))
-                    if not result or result[0]["Result"] != expected_output:
-                        counterexamples.append({
-                            "input": input_data,
-                            "expected": expected_output,
-                            "actual": result[0]["Result"] if result else None
-                        })
-                except Exception as e:
-                    logger.error(f"Error executing query for input {input_data}: {e}")
-
-            self.prolog.retract(rule)
-            logger.info("Retracted rule after counterexample testing.")
+        valid_examples = []
+        for example in counterexamples:
+            if self.violates_fairness(example):
+                logger.warning(f"Counterexample {example} fails fairness constraint.")
+                self.log_failure(example, "Fails fairness constraint")
+                continue
             
-            # Perform additional validation
-            if self.detect_logical_contradictions(rule):
-                logger.warning(f"Rule {rule} has logical contradictions.")
-                return counterexamples + [{"error": "Logical contradiction detected"}]
+            # Socratic Questioning: AI must justify this rule before acceptance
+            justification = self.ask_socratic_question(rule, example)
+            if not self.valid_causal_chain(justification):
+                logger.warning(f"Counterexample {example} lacks valid causal reasoning.")
+                self.log_failure(example, "Fails Socratic reasoning check")
+                continue
 
-            if not self.test_counterfactuals(rule):
-                logger.warning(f"Rule {rule} failed counterfactual validation.")
-                return counterexamples + [{"error": "Counterfactual test failed"}]
+            # Near Enemy Check: Is this rule deceptive?
+            if self.is_near_enemy(rule):
+                logger.warning(f"Rule {rule} may be a near enemy.")
+                self.log_failure(example, "Fails near enemy detection")
+                continue
 
-            return counterexamples
+            valid_examples.append(example)
 
-        except Exception as e:
-            logger.error(f"Error finding counterexamples: {e}")
-            self.prolog.retract(rule)
-            return []
+        return valid_examples
 
-    def detect_logical_contradictions(self, rule):
+    def is_near_enemy(self, rule):
         """
-        Detects logical contradictions by running Prolog queries.
-
-        Args:
-            rule (str): Proposed Prolog rule.
-
-        Returns:
-            bool: True if contradictions are found, False otherwise.
+        Uses LLM to detect if a rule appears valid but subtly undermines logic or fairness.
         """
-        try:
-            contradiction_query = f"findall(X, ({rule}, not(X)), Contradictions)."
-            contradictions = list(self.prolog.query(contradiction_query))
-            if contradictions:
-                logger.warning(f"Contradictions detected in rule {rule}: {contradictions}")
-                return True
-            return False
-        except Exception as e:
-            logger.error(f"Error detecting contradictions for rule {rule}: {e}")
-            return True  # Default to failure if error occurs
+        query = f"Does the rule '{rule}' appear logically sound but introduce bias or deception?"
+        return "yes" in LLM.ask(query).lower()
 
-    def test_counterfactuals(self, rule):
+    def generate_diverse_cases(self, rule):
         """
-        Tests the proposed rule against counterfactual cases.
-
-        Args:
-            rule (str): Proposed Prolog rule.
-
-        Returns:
-            bool: True if counterfactual tests pass, False otherwise.
+        Uses LLM to generate diverse counterexamples that challenge different aspects of a rule.
         """
-        try:
-            negated_rule = rule.replace(":-", ":- not(") + ")."
-            self.prolog.assertz(negated_rule)
+        query = f"Generate multiple counterexamples that challenge the logic of the rule: {rule}"
+        return LLM.ask(query)
 
-            query = f"{rule.split('(')[0]}(X, Result)."
-            counterexamples = list(self.prolog.query(query))
-
-            if counterexamples:
-                logger.warning(f"Counterfactual failures found for rule {rule}: {counterexamples}")
-                self.prolog.retract(negated_rule)
-                return False
-
-            self.prolog.retract(negated_rule)
-            return True
-        except Exception as e:
-            logger.error(f"Error in counterfactual testing for rule {rule}: {e}")
-            return False
-
-    def store_counterexamples(self, rule_id, counterexamples):
+    def ask_socratic_question(self, rule, example):
         """
-        Store identified counterexamples in Neo4j for future reference.
-
-        Args:
-            rule_id (str): Unique identifier for the rule.
-            counterexamples (list): Counterexamples to store.
+        Forces AI to justify a rule using Socratic questioning.
         """
-        try:
-            with self.driver.session() as session:
-                for counterexample in counterexamples:
-                    session.run(
-                        """
-                        MERGE (r:Rule {id: $rule_id})
-                        CREATE (ce:Counterexample {input: $input, expected: $expected, actual: $actual})
-                        MERGE (r)-[:HAS_COUNTEREXAMPLE]->(ce)
-                        """,
-                        rule_id=rule_id,
-                        input=counterexample.get("input"),
-                        expected=counterexample.get("expected"),
-                        actual=counterexample.get("actual")
-                    )
-                logger.info(f"Stored counterexamples for rule {rule_id} in Neo4j.")
-        except Exception as e:
-            logger.error(f"Error storing counterexamples: {e}")
+        query = f"Why does {rule} hold in the case of {example}? Provide a causal justification."
+        return LLM.ask(query)
 
-if __name__ == "__main__":
-    logger.info("Initializing Counterexample Finder")
+    def valid_causal_chain(self, explanation):
+        """
+        Determines if an explanation follows valid causal logic.
+        """
+        query = f"Does this explanation follow a sound causal chain? {explanation}"
+        result = LLM.ask(query)
+        return "valid" in result.lower()
 
-    finder = CounterexampleFinder(
-        uri="bolt://localhost:7687",
-        user="neo4j",
-        password="password",
-        prolog_files=["./prolog_rules/geometry_rules.pl"]
-    )
+    def violates_fairness(self, example):
+        """
+        Checks if a counterexample reveals a biased outcome.
+        """
+        query = f"Does this rule, as applied to {example}, introduce any bias?"
+        return "yes" in LLM.ask(query).lower()
 
-    test_rule = "double(X, Y) :- Y is X * 2."
-    examples = [
-        {"input": "2", "expected_output": "4"},
-        {"input": "3", "expected_output": "6"},
-        {"input": "4", "expected_output": "10"}  # Incorrect example to test counterexamples
-    ]
-
-    counterexamples = finder.find_counterexamples(test_rule, examples)
-    if counterexamples:
-        rule_id = str(hash(test_rule))
-        finder.store_counterexamples(rule_id, counterexamples)
-        logger.warning(f"Counterexamples found: {counterexamples}")
-    else:
-        logger.info("No counterexamples found. Rule validated.")
-
-    finder.close()
+    def log_failure(self, example, reason):
+        """
+        Stores failing counterexamples in Neo4j for analysis.
+        """
+        logger.info(f"Logging failed counterexample: {example} | Reason: {reason}")
+        with self.driver.session() as session:
+            query = """
+            MERGE (c:Counterexample {example: $example})
+            SET c.failure_reason = $reason
+            """
+            session.run(query, example=example, reason=reason)
