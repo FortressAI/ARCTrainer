@@ -1,5 +1,5 @@
 % ============================
-% Aristotelian Logic with Near Enemy Detection
+% Aristotelian Logic with Monte Carlo Reasoning
 % ============================
 
 % Classical Syllogism:
@@ -15,7 +15,7 @@ premise(socrates, all_men).
 conclusion(socrates, mortal).
 
 % ============================
-% Near Enemy Detection
+% Fairness Constraints
 % ============================
 
 % A rule is considered valid only if it does not create a biased or deceptive outcome.
@@ -23,7 +23,39 @@ valid_rule(Rule) :-
     \+ biased_outcome(Rule),
     \+ near_enemy(Rule).
 
-% Define near enemy conditions
+biased_outcome(Rule) :-
+    affects_unfairly(Rule, Group),
+    format("Warning: Rule ~w disproportionately affects group ~w", [Rule, Group]).
+
+affects_unfairly(social_policy, marginalized_group).
+affects_unfairly(lending_decision, low_income_applicants).
+
+% ============================
+% Monte Carlo Probabilistic Logic
+% ============================
+
+monte_carlo_validation(Rule, Probability) :-
+    findall(Outcome, simulate_rule(Rule, Outcome), Outcomes),
+    count_success(Outcomes, Successes),
+    length(Outcomes, Total),
+    Probability is Successes / Total,
+    Probability > 0.7.  % Threshold for acceptance
+
+simulate_rule(Rule, valid) :-
+    random_member(RuleVariation, [Rule, variation1, variation2, variation3]),
+    valid_rule(RuleVariation).
+
+simulate_rule(_, invalid).
+
+count_success([], 0).
+count_success([valid | Tail], N) :- count_success(Tail, M), N is M + 1.
+count_success([invalid | Tail], N) :- count_success(Tail, N).
+
+% ============================
+% Near Enemy Detection
+% ============================
+
+% Near Enemy Detection: Rules that seem valid but introduce deception.
 near_enemy(Rule) :-
     appears_fair(Rule),
     hidden_bias(Rule),
@@ -43,6 +75,7 @@ socratic_question(Rule, Why) :-
     format("Why does ~w hold? Because ~w", [Rule, Explanation]).
 
 validate_rule(Rule) :-
+    monte_carlo_validation(Rule, Probability),
     socratic_question(Rule, Explanation),
     valid_rule(Rule),
-    format("Rule ~w has passed Socratic, fairness, and near enemy checks.", [Rule]).
+    format("Rule ~w passed Monte Carlo reasoning with confidence ~2f", [Rule, Probability]).
