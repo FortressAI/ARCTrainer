@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Challenge AI</title>
+    <title>Last Human Test - ARC Trainer</title>
     <link rel="stylesheet" href="css/common.css">
 </head>
 <body>
     <header>
-        <h1>Challenge AI</h1>
+        <h1>Last Human Test</h1>
         <nav>
             <ul>
                 <li><a href="index.html">Home</a></li>
-                <li><a href="simulation.html">Simulation Mode</a></li>
+                <li><a href="challenge.html">Challenge AI</a></li>
                 <li><a href="leaderboard.html">Leaderboard</a></li>
             </ul>
         </nav>
@@ -20,30 +20,17 @@
 
     <main>
         <section>
-            <h2>Submit Your Challenge</h2>
-            <textarea id="challenge-input" placeholder="Enter your challenge here..."></textarea>
-            <button id="submit-challenge">Submit</button>
+            <h2>Upload an Image for the Last Human Test</h2>
+            <input type="file" id="image-upload" accept="image/*">
+            <button id="process-image">Generate Reasoning Challenge</button>
         </section>
 
         <section>
-            <h2>AI's Response</h2>
-            <div id="ai-response">Waiting for response...</div>
-        </section>
-
-        <section>
-            <h2>Start AI Debate</h2>
-            <input type="text" id="debate-rule" placeholder="Enter a rule for AI to debate">
-            <button id="start-debate">Start Debate</button>
-        </section>
-
-        <section>
-            <h2>AI Debate Results</h2>
-            <p><strong>Agent 1:</strong> <span id="agent1-response"></span></p>
-            <p><strong>Agent 2:</strong> <span id="agent2-response"></span></p>
-            <p><strong>Contradiction Found:</strong> <span id="contradiction-result"></span></p>
+            <h2>Generated Challenge</h2>
+            <div id="language-game-output">Awaiting image processing...</div>
         </section>
     </main>
 
-    <script src="js/challenge.js"></script>
+    <script src="js/image_processor.js"></script>
 </body>
 </html>

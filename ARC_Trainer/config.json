@@ -1,36 +1,47 @@
 {
-  "neo4j": {
-    "uri": "bolt://localhost:7687",
-    "user": "neo4j",
-    "password": "password"
-  },
-  "prolog_rules": [
-    "./prolog_rules/geometry_rules.pl",
-    "./prolog_rules/arithmetic_rules.pl"
-  ],
-  "training_data": {
-    "source": "neo4j",
-    "graph_query": "MATCH (d:Dataset)-[:CONTAINS]->(t:TrainingData) RETURN t.split AS split, t.text AS text, t.label AS label"
-  },
-  "fine_tuning": {
-    "model_name": "bert-base-uncased",
-    "output_dir": "./models/fine_tuned",
-    "logging_dir": "./models/logs",
-    "epochs": 3,
-    "learning_rate": 2e-5,
-    "batch_size": 16
-  },
-  "llm_client": {
-    "api_url": "http://localhost:8000/api",
-    "api_key": "your_api_key_here",
-    "timeout": 10,
-    "endpoints": {
-      "query": "/query",
-      "validate": "/validate"
+    "app": {
+        "name": "ARC Trainer",
+        "version": "1.0.0",
+        "description": "Reasoning Language Model (RLM) framework with AI-to-AI debate, human-in-the-loop knowledge graph validation, and Last Human Test integration."
+    },
+    "server": {
+        "host": "0.0.0.0",
+        "port": 5000,
+        "debug": true
+    },
+    "database": {
+        "neo4j": {
+            "uri": "bolt://localhost:7687",
+            "user": "neo4j",
+            "password": "yourpassword"
+        }
+    },
+    "ai_models": {
+        "blip": {
+            "model_name": "Salesforce/blip-image-captioning-large",
+            "use_gpu": true
+        },
+        "llm": {
+            "enabled": true,
+            "provider": "openai",
+            "model": "gpt-4-turbo",
+            "api_key": "your_openai_api_key"
+        }
+    },
+    "features": {
+        "arc_dataset_mode": true,
+        "last_human_test_mode": true,
+        "multi_agent_debate": true,
+        "knowledge_graph_validation": true,
+        "human_sign_off_required": true
+    },
+    "paths": {
+        "uploads": "uploads/",
+        "datasets": "datasets/",
+        "logs": "logs/"
+    },
+    "security": {
+        "enable_authentication": false,
+        "allowed_origins": ["*"]
     }
-  },
-  "api": {
-    "host": "0.0.0.0",
-    "port": 5000
-  }
 }

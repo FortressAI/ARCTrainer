@@ -3,78 +3,56 @@
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
 ## 📌 Overview
-The **ARC Trainer** is an **Advanced Reasoning Language Model (RLM) framework** that combines **symbolic logic, knowledge graphs, and language models** to create a self-improving AI system. It is designed to ensure **fairness, logical rigor, and transparency** in AI reasoning. 
+The **ARC Trainer** is an **Advanced Reasoning Language Model (RLM) framework** that integrates **Knowledge Graphs (KGs), Prolog-based reasoning, and AI-to-AI debates** to create a self-improving AI reasoning system. Unlike black-box LLMs, ARC Trainer ensures **explainability, structured knowledge validation, and human oversight** before AI-generated knowledge is committed.
 
-Our system is **fully compliant** with the reasoning principles outlined in the **arXiv whitepaper 2501.11223: "Reasoning Language Models (RLMs): A Blueprint for Advanced AI Reasoning"**. 
+The system features **dual-mode AI evaluation**, supporting:
+1. **ARC Dataset Mode** – Structured AI benchmarking using predefined logic tasks.
+2. **Last Human Exam Mode** – Open-ended reasoning challenges where AI processes **visual inputs and generates logical puzzles**.
 
-Additionally, ARC Trainer now features **dual-mode AI evaluation**, supporting:
-1. **ARC Dataset Mode** – Structured AI testing with predefined logic challenges.
-2. **Humanity’s Last Exam Mode** – Open-ended, adversarial reasoning tests created by users.
-3. **Multi-Agent Debate System** – AI vs. AI reasoning for rule validation and contradiction detection.
-
----
-
-## ✅ Compliance with RLM Whitepaper (arXiv:2501.11223)
-The ARC Trainer aligns with **all key principles of RLMs**:
-1. **Multi-Step Causal Reasoning** – Ensures AI justifies conclusions step-by-step.
-2. **Formal Verification** – Uses **Prolog logic and fairness constraints**.
-3. **Counterfactual Reasoning** – AI considers **"what-if" scenarios** before accepting rules.
-4. **Wittgensteinian Language Games** – Tracks **semantic meaning shifts** over time.
-5. **Near Enemy Detection** – Prevents **rules that appear valid but are subtly flawed**.
-6. **Knowledge Graph Integration** – Dynamically **updates AI logic** in Neo4j.
-7. **Self-Improving AI** – Uses **iterative feedback loops** for rule refinement.
-8. **Multi-Agent Debate System** – AI models debate and refine knowledge dynamically.
+It also introduces a **multi-agent AI debate system**, where **AI models challenge and refine each other’s reasoning dynamically**.
 
 ---
 
-## 🚀 Key Features
-### **🔹 1. Advanced Rule-Based AI (Prolog & LLM)**
-- Implements **Aristotelian syllogistic logic** for structured reasoning.
-- Uses **LLM-assisted rule validation** and **Socratic questioning**.
-- Supports **formal verification** to detect inconsistencies.
+## ✅ Key Features
 
-### **🔹 2. Counterexample & Counterfactual Testing**
-- AI generates **counterexamples** to test reasoning integrity.
-- Uses **LLMs to generate hypothetical ("what-if") scenarios**.
-- Ensures all rules hold under **alternative conditions**.
+### **1️⃣ Knowledge Graph-Driven AI Reasoning**
+- Uses **Neo4j-based Knowledge Graphs** to store **validated AI knowledge**.
+- Requires **human sign-off** before updating reasoning models.
 
-### **🔹 3. Fairness and Ethical AI Compliance**
-- Implements **bias detection and fairness validation**.
-- **Prevents rules from reinforcing discrimination or hidden biases**.
-- Near Enemy Detection ensures **deceptive rules are flagged and refined**.
+### **2️⃣ Multi-Agent AI Debate System**
+- AI agents **argue for and against reasoning rules**.
+- Contradictions are **detected and logged** for refinement.
+- Past debates are **stored in the Knowledge Graph for auditability**.
 
-### **🔹 4. Knowledge Graph-Driven Learning**
-- Stores reasoning in **Neo4j** for structured learning.
-- Tracks **semantic meaning evolution** using **Wittgensteinian Language Games**.
-- Self-improves over time **based on past rule evaluations**.
+### **3️⃣ Dual-Mode AI Evaluation**
+- **ARC Dataset Mode**: Tests structured AI logic through predefined challenges.
+- **Last Human Exam Mode**: Uses **BLIP vision-language models** to generate reasoning challenges from images.
 
-### **🔹 5. Multi-Agent Debate System for AI Self-Improvement**
-- AI agents **challenge each other’s logic dynamically**.
-- Logs **debate history** in **Neo4j for future refinement**.
-- Enables **automated contradiction detection and resolution**.
+### **4️⃣ Visual Reasoning & Image Processing**
+- AI can **process images using BLIP** to generate **structured logic puzzles**.
+- Image-based reasoning tasks can be **stored and reviewed** in the Knowledge Graph.
 
-### **🔹 6. Dual-Mode AI Evaluation**
-- **ARC Dataset Mode** – Predefined logical challenges for AI benchmarking.
-- **Humanity’s Last Exam Mode** – Open-ended, adversarial reasoning from human users.
-- **Switch seamlessly** between both modes via the web UI.
+### **5️⃣ Human-Governed Knowledge Export**
+- **Humans validate AI-generated knowledge** before it is integrated into the KG.
+- This ensures **AI remains accountable, explainable, and auditable**.
 
 ---
 
 ## 🛠 Installation
 
-### **🔹 1. Clone the Repository**
+### **1️⃣ Clone the Repository**
 ```bash
 git clone https://github.com/YOUR-USERNAME/ARC-Trainer.git
 cd ARC-Trainer
 ```
 
-### **🔹 2. Install Dependencies**
+### **2️⃣ Install Dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-### **🔹 3. Set Up Neo4j Database**
-1. Install Neo4j and start a local database.
+### **3️⃣ Set Up Neo4j Database**
+1. Install **Neo4j** and start a local database.
 2. Configure `.env` file with your **Neo4j credentials**:
 ```plaintext
 NEO4J_URI=bolt://localhost:7687
@@ -82,57 +60,48 @@ NEO4J_USER=neo4j
 NEO4J_PASSWORD=yourpassword
 ```
 
+### **4️⃣ Run ARC Trainer with Docker Compose**
+```bash
+docker-compose up --build
+```
+
 ---
 
 ## 📌 Usage
-### **🔹 1. Run the Counterexample Finder**
-```bash
-python src/CounterexampleFinder.py --rule "example_rule"
-```
-- Generates **counterexamples** and **counterfactual tests**.
-- Logs failed cases to **Neo4j for refinement**.
 
-### **🔹 2. Validate Reasoning in Prolog**
-```bash
-swipl -s src/aristotle_logic.pl
-?- validate_rule(example_rule).
-```
-- Ensures all rules pass **multi-step causal reasoning**.
-- Checks for **near enemy fallacies**.
+### **1️⃣ Run the Last Human Test (Image-Based Reasoning)**
+1. Start the **Flask backend**:
+   ```bash
+   python app.py
+   ```
+2. Open **http://localhost:5000** and **upload an image**.
+3. AI generates a **logical reasoning challenge** based on the image.
 
-### **🔹 3. Track Semantic Meaning Shifts**
+### **2️⃣ Process an ARC Dataset Task**
 ```bash
-python src/GraphRAG.py --track-rule "example_rule"
+python src/task_manager.py --load-task "example_task"
 ```
-- Updates **rule meaning evolution** using **Wittgensteinian logic**.
-- Ensures AI **adapts based on real-world changes**.
+- Loads an **ARC logic puzzle** from the dataset.
+- AI generates **solutions and validates them against KG rules**.
 
-### **🔹 4. Start the Web UI**
-```bash
-python app.py
-```
-- Access **ARC Trainer’s Web UI** at `http://localhost:5000`
-- Switch between **ARC Dataset Mode** and **Last Human Exam Mode**.
-
-### **🔹 5. Run the Multi-Agent Debate System**
+### **3️⃣ Start AI Multi-Agent Debate**
 ```bash
 python src/GraphRAG.py --retrieve-debate-history "example_rule"
 ```
-- Displays AI debate history stored in Neo4j.
-- Allows **users to analyze contradictions and reasoning evolution**.
+- Retrieves **past AI debates** from the KG.
+- Allows for **AI reasoning refinement over time**.
 
 ---
 
 ## 🚀 Future Enhancements
-- **Graph Neural Networks (GNNs)** for improved **pattern recognition**.
-- **Automated Formal Verification** through **proof assistants**.
-- **Extended Domain Applications**: Law, Healthcare, and Ethics.
-- **Multi-Agent Debate Expansion** – Allowing more AI perspectives.
+- **Graph Neural Networks (GNNs)** for **automated pattern recognition**.
+- **Integration of formal verification tools** for AI-generated knowledge.
+- **Expanded AI-to-AI debate framework** to refine logic across multiple domains.
 
 ---
 
 ## 🤝 Contributing
-We welcome **community contributions** to improve reasoning AI!  
+We welcome **community contributions** to improve AI reasoning!  
 - Fork the repository  
 - Create a new branch (`git checkout -b feature-branch`)  
 - Submit a **pull request**  
