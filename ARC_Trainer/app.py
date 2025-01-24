@@ -1,4 +1,5 @@
 from flask import Flask, render_template, send_from_directory, jsonify, request
+from llm_client import LLM  # Assuming LLM integration for AI debate responses
 
 app = Flask(__name__, template_folder="public", static_folder="public")
 
@@ -32,40 +33,25 @@ def send_css(path):
 def send_js(path):
     return send_from_directory('public/js', path)
 
-# API Endpoint: Start an ARC Dataset Challenge
-@app.route('/api/arc-test', methods=['POST'])
-def arc_test():
-    arc_challenge = {
-        "message": "Solve this structured problem: What is the next number in the sequence 2, 4, 8, 16, ?"
-    }
-    return jsonify(arc_challenge)
-
-# API Endpoint: Start a Last Human Exam Challenge
-@app.route('/api/start-challenge', methods=['POST'])
-def start_challenge():
+# API Endpoint: AI Multi-Agent Debate
+@app.route('/api/debate', methods=['POST'])
+def start_debate():
     data = request.get_json()
-    challenge_input = data.get("input", "")
-    response = {
-        "message": f"AI is processing your challenge: {challenge_input}"
-    }
-    return jsonify(response)
+    rule = data.get("rule")
 
-# API Endpoint: Get Leaderboard Data
-@app.route('/api/get-leaderboard', methods=['GET'])
-def get_leaderboard():
-    leaderboard_data = [
-        {"user": "Alice", "score": 95},
-        {"user": "Bob", "score": 88},
-        {"user": "Charlie", "score": 82}
-    ]
-    return jsonify(leaderboard_data)
+    # Simulate AI Agents debating the rule
+    agent1_response = LLM.ask(f"Defend this rule: {rule}")
+    agent2_response = LLM.ask(f"Challenge this rule: {rule}")
 
-# API Endpoint: Run an AI Simulation
-@app.route('/api/simulate', methods=['POST'])
-def simulate():
-    data = request.get_json()
-    scenario = data.get("scenario", "default scenario")
-    return jsonify({"simulation": f"AI's simulated response for scenario: {scenario}"})
+    # Evaluate contradictions
+    contradiction = LLM.ask(f"Does '{agent1_response}' contradict '{agent2_response}'?")
+
+    return jsonify({
+        "rule": rule,
+        "agent1": agent1_response,
+        "agent2": agent2_response,
+        "contradiction_found": contradiction.lower() == "yes"
+    })
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)

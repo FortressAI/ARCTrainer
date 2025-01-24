@@ -7,6 +7,13 @@ The **ARC Trainer** is an **Advanced Reasoning Language Model (RLM) framework** 
 
 Our system is **fully compliant** with the reasoning principles outlined in the **arXiv whitepaper 2501.11223: "Reasoning Language Models (RLMs): A Blueprint for Advanced AI Reasoning"**. 
 
+Additionally, ARC Trainer now features **dual-mode AI evaluation**, supporting:
+1. **ARC Dataset Mode** – Structured AI testing with predefined logic challenges.
+2. **Humanity’s Last Exam Mode** – Open-ended, adversarial reasoning tests created by users.
+3. **Multi-Agent Debate System** – AI vs. AI reasoning for rule validation and contradiction detection.
+
+---
+
 ## ✅ Compliance with RLM Whitepaper (arXiv:2501.11223)
 The ARC Trainer aligns with **all key principles of RLMs**:
 1. **Multi-Step Causal Reasoning** – Ensures AI justifies conclusions step-by-step.
@@ -16,6 +23,7 @@ The ARC Trainer aligns with **all key principles of RLMs**:
 5. **Near Enemy Detection** – Prevents **rules that appear valid but are subtly flawed**.
 6. **Knowledge Graph Integration** – Dynamically **updates AI logic** in Neo4j.
 7. **Self-Improving AI** – Uses **iterative feedback loops** for rule refinement.
+8. **Multi-Agent Debate System** – AI models debate and refine knowledge dynamically.
 
 ---
 
@@ -39,6 +47,16 @@ The ARC Trainer aligns with **all key principles of RLMs**:
 - Stores reasoning in **Neo4j** for structured learning.
 - Tracks **semantic meaning evolution** using **Wittgensteinian Language Games**.
 - Self-improves over time **based on past rule evaluations**.
+
+### **🔹 5. Multi-Agent Debate System for AI Self-Improvement**
+- AI agents **challenge each other’s logic dynamically**.
+- Logs **debate history** in **Neo4j for future refinement**.
+- Enables **automated contradiction detection and resolution**.
+
+### **🔹 6. Dual-Mode AI Evaluation**
+- **ARC Dataset Mode** – Predefined logical challenges for AI benchmarking.
+- **Humanity’s Last Exam Mode** – Open-ended, adversarial reasoning from human users.
+- **Switch seamlessly** between both modes via the web UI.
 
 ---
 
@@ -89,12 +107,27 @@ python src/GraphRAG.py --track-rule "example_rule"
 - Updates **rule meaning evolution** using **Wittgensteinian logic**.
 - Ensures AI **adapts based on real-world changes**.
 
+### **🔹 4. Start the Web UI**
+```bash
+python app.py
+```
+- Access **ARC Trainer’s Web UI** at `http://localhost:5000`
+- Switch between **ARC Dataset Mode** and **Last Human Exam Mode**.
+
+### **🔹 5. Run the Multi-Agent Debate System**
+```bash
+python src/GraphRAG.py --retrieve-debate-history "example_rule"
+```
+- Displays AI debate history stored in Neo4j.
+- Allows **users to analyze contradictions and reasoning evolution**.
+
 ---
 
 ## 🚀 Future Enhancements
 - **Graph Neural Networks (GNNs)** for improved **pattern recognition**.
 - **Automated Formal Verification** through **proof assistants**.
 - **Extended Domain Applications**: Law, Healthcare, and Ethics.
+- **Multi-Agent Debate Expansion** – Allowing more AI perspectives.
 
 ---
 
