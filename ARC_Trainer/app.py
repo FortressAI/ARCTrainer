@@ -1,108 +1,71 @@
-from flask import Flask, request, jsonify
-from loguru import logger
-from task_manager import TaskManager
-from metrics_dashboard import MetricsDashboard
-from user_feedback import UserFeedback
+from flask import Flask, render_template, send_from_directory, jsonify, request
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="public", static_folder="public")
 
-# Initialize Modules
-@app.route("/tasks", methods=["POST"])
-def submit_task():
-    """
-    API endpoint to submit a task.
-    """
-    try:
-        task_data = request.json
+# Serve UI Pages
+@app.route('/')
+def index():
+    return render_template("index.html")
 
-        if not task_data:
-            return jsonify({"error": "Task data is required"}), 400
+@app.route('/home')
+def home():
+    return render_template("home.html")
 
-        manager = TaskManager()
-        response = manager.submit_task(task_data)
-        manager.close()
-        return jsonify(response), 200
-    except Exception as e:
-        logger.error(f"Error in submit_task endpoint: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+@app.route('/challenge')
+def challenge():
+    return render_template("challenge.html")
 
-@app.route("/tasks/<task_id>", methods=["GET"])
-def get_task_status(task_id):
-    """
-    API endpoint to get the status of a task.
-    """
-    try:
-        manager = TaskManager()
-        response = manager.get_task_status(task_id)
-        manager.close()
-        return jsonify(response), 200
-    except Exception as e:
-        logger.error(f"Error in get_task_status endpoint: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+@app.route('/simulation')
+def simulation():
+    return render_template("simulation.html")
 
-@app.route("/metrics/tasks", methods=["GET"])
-def get_task_metrics():
-    """
-    API endpoint to fetch task metrics.
-    """
-    try:
-        metrics = MetricsDashboard().get_task_metrics()
-        return jsonify(metrics), 200
-    except Exception as e:
-        logger.error(f"Error in get_task_metrics endpoint: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+@app.route('/leaderboard')
+def leaderboard():
+    return render_template("leaderboard.html")
 
-@app.route("/metrics/system", methods=["GET"])
-def get_system_metrics():
-    """
-    API endpoint to fetch system performance metrics.
-    """
-    try:
-        metrics = MetricsDashboard().get_system_metrics()
-        return jsonify(metrics), 200
-    except Exception as e:
-        logger.error(f"Error in get_system_metrics endpoint: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+# Serve static files
+@app.route('/css/<path:path>')
+def send_css(path):
+    return send_from_directory('public/css', path)
 
-@app.route("/feedback", methods=["POST"])
-def submit_feedback():
-    """
-    API endpoint to submit user feedback.
-    """
-    try:
-        data = request.json
-        session_id = data.get("session_id")
-        feedback = data.get("feedback")
+@app.route('/js/<path:path>')
+def send_js(path):
+    return send_from_directory('public/js', path)
 
-        if not session_id or not feedback:
-            return jsonify({"error": "session_id and feedback are required"}), 400
+# API Endpoint: Start an ARC Dataset Challenge
+@app.route('/api/arc-test', methods=['POST'])
+def arc_test():
+    arc_challenge = {
+        "message": "Solve this structured problem: What is the next number in the sequence 2, 4, 8, 16, ?"
+    }
+    return jsonify(arc_challenge)
 
-        user_feedback = UserFeedback()
-        success = user_feedback.submit_feedback(session_id, feedback)
-        user_feedback.close()
+# API Endpoint: Start a Last Human Exam Challenge
+@app.route('/api/start-challenge', methods=['POST'])
+def start_challenge():
+    data = request.get_json()
+    challenge_input = data.get("input", "")
+    response = {
+        "message": f"AI is processing your challenge: {challenge_input}"
+    }
+    return jsonify(response)
 
-        if success:
-            return jsonify({"message": "Feedback submitted successfully"}), 200
-        else:
-            return jsonify({"error": "Failed to store feedback"}), 500
-    except Exception as e:
-        logger.error(f"Error in submit_feedback endpoint: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+# API Endpoint: Get Leaderboard Data
+@app.route('/api/get-leaderboard', methods=['GET'])
+def get_leaderboard():
+    leaderboard_data = [
+        {"user": "Alice", "score": 95},
+        {"user": "Bob", "score": 88},
+        {"user": "Charlie", "score": 82}
+    ]
+    return jsonify(leaderboard_data)
 
-@app.route("/feedback/<session_id>", methods=["GET"])
-def get_feedback(session_id):
-    """
-    API endpoint to retrieve user feedback for a session.
-    """
-    try:
-        user_feedback = UserFeedback()
-        feedback = user_feedback.get_feedback(session_id)
-        user_feedback.close()
-        return jsonify({"session_id": session_id, "feedback": feedback}), 200
-    except Exception as e:
-        logger.error(f"Error in get_feedback endpoint: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+# API Endpoint: Run an AI Simulation
+@app.route('/api/simulate', methods=['POST'])
+def simulate():
+    data = request.get_json()
+    scenario = data.get("scenario", "default scenario")
+    return jsonify({"simulation": f"AI's simulated response for scenario: {scenario}"})
 
 if __name__ == "__main__":
-    logger.info("Starting ARC Trainer API")
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000)

@@ -8,10 +8,14 @@ class CounterexampleFinder:
         """
         Initializes the counterexample finder with Monte Carlo integration and Neo4j support.
         Args:
+            neo4j_uri (str): URI for connecting to Neo4j.
+            neo4j_user (str): Username for Neo4j authentication.
+            neo4j_password (str): Password for Neo4j authentication.
             num_simulations (int): Number of Monte Carlo iterations for probabilistic rule evaluation.
         """
         self.driver = GraphDatabase.driver(neo4j_uri, auth=(neo4j_user, neo4j_password))
         self.num_simulations = num_simulations
+        logger.info("CounterexampleFinder initialized with Monte Carlo reasoning and fairness validation.")
 
     def close(self):
         """Closes the connection to the Neo4j database."""
@@ -63,9 +67,7 @@ class CounterexampleFinder:
         return successful_cases / self.num_simulations  # Probability of correctness
 
     def generate_random_variation(self, rule):
-        """
-        Creates a stochastic variation of the rule for counterfactual testing.
-        """
+        """Creates a stochastic variation of the rule for counterfactual testing."""
         query = f"Generate a randomized version of the rule '{rule}' for counterfactual testing."
         return LLM.ask(query)
 
@@ -77,9 +79,7 @@ class CounterexampleFinder:
         return LLM.ask(query)
 
     def valid_causal_chain(self, explanation):
-        """
-        Determines if an explanation follows valid causal logic.
-        """
+        """Determines if an explanation follows valid causal logic."""
         query = f"Does this explanation follow a sound causal chain? {explanation}"
         result = LLM.ask(query)
         return "valid" in result.lower()

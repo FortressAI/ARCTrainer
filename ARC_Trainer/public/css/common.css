@@ -1,94 +1,79 @@
-/* css/common.css */
-
+/* General Styles */
 body {
-    font-family: Arial, sans-serif;
+    font-family: 'Arial', sans-serif;
     margin: 0;
     padding: 0;
-    background-color: #f4f4f4;
-    color: #333;
-}
-
-header {
-    background-color: #333;
-    color: #fff;
-    padding: 1rem 0;
+    background-color: #0d1117;
+    color: #ffffff;
     text-align: center;
 }
 
+/* Header Styling */
+header {
+    background-color: #161b22;
+    padding: 20px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 2em;
+    color: #58a6ff;
+}
+
+/* Navigation */
+nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 20px 0;
+}
+
+nav ul li {
+    display: inline;
+    margin: 0 15px;
+}
+
+nav ul li a {
+    color: #58a6ff;
+    text-decoration: none;
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+nav ul li a:hover {
+    color: #f78166;
+}
+
+/* Main Section */
 main {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 2rem;
-    padding: 2rem;
-    justify-content: center;
+    margin-top: 50px;
 }
 
-section {
-    background: #fff;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    padding: 1rem;
-    width: 300px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+section h2 {
+    color: #ffffff;
+    font-size: 1.8em;
 }
 
+/* Buttons */
 button {
-    background-color: #007bff;
-    color: #fff;
+    background-color: #238636;
+    color: #ffffff;
     border: none;
-    border-radius: 3px;
-    padding: 0.5rem 1rem;
+    padding: 15px 30px;
+    margin: 10px;
+    font-size: 1em;
+    border-radius: 5px;
     cursor: pointer;
-    margin-top: 0.5rem;
 }
 
 button:hover {
-    background-color: #0056b3;
+    background-color: #2ea043;
 }
 
-input, textarea, select {
-    width: 100%;
-    padding: 0.5rem;
-    margin-top: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 3px;
-    font-size: 1rem;
-}
-
-textarea {
-    resize: vertical;
-    height: 100px;
-}
-
-#message-box {
-    padding: 1rem;
-    border-radius: 3px;
-    margin-top: 1rem;
-    display: none;
-}
-
-#message-box.info {
-    background-color: #e7f3fe;
-    color: #31708f;
-    border: 1px solid #bce8f1;
-}
-
-#message-box.success {
-    background-color: #dff0d8;
-    color: #3c763d;
-    border: 1px solid #d6e9c6;
-}
-
-#message-box.error {
-    background-color: #f2dede;
-    color: #a94442;
-    border: 1px solid #ebccd1;
-}
-
+/* Footer */
 footer {
-    text-align: center;
-    padding: 1rem;
-    background-color: #333;
-    color: #fff;
-    margin-top: 2rem;
+    margin-top: 50px;
+    padding: 10px;
+    background-color: #161b22;
+    color: #8b949e;
+    font-size: 0.9em;
 }

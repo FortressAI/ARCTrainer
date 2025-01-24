@@ -6,7 +6,7 @@ import random
 class GraphRAG:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", num_simulations=1000):
         """
-        Initializes the Neo4j-backed Knowledge Graph with Monte Carlo-based rule refinement.
+        Initializes the Neo4j-backed Knowledge Graph with Personalized Knowledge Storage.
         
         Args:
             uri (str): URI for connecting to Neo4j.
@@ -16,91 +16,64 @@ class GraphRAG:
         """
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         self.num_simulations = num_simulations
-        logger.info("GraphRAG initialized with Monte Carlo refinement.")
+        logger.info("GraphRAG initialized with Personalized Knowledge Graphs.")
 
     def close(self):
         """Closes the connection to the Neo4j database."""
         self.driver.close()
 
-    def store_ontology(self, rule_id, cnl_rule, prolog_rule, domain="general"):
+    def store_experiential_knowledge(self, rule_id, experience, confidence_score):
         """
-        Stores an ontology rule and its equivalent Prolog rule in Neo4j.
-
+        Stores real-world experiential knowledge with confidence ranking.
+        
         Args:
             rule_id (str): Unique identifier for the rule.
-            cnl_rule (str): Human-readable ontology definition.
-            prolog_rule (str): Prolog equivalent of the ontology.
-            domain (str): Domain category (e.g., warfare, healthcare, legal).
+            experience (str): Contextual knowledge.
+            confidence_score (float): A measure of reliability (0-1 scale).
         """
         with self.driver.session() as session:
             session.run(
                 """
-                MERGE (r:OntologyRule {id: $rule_id})
-                SET r.cnl_rule = $cnl_rule, r.prolog_rule = $prolog_rule, r.domain = $domain
-                """,
-                rule_id=rule_id, cnl_rule=cnl_rule, prolog_rule=prolog_rule, domain=domain
+                MERGE (r:Knowledge {id: $rule_id})
+                SET r.experience = $experience, r.confidence_score = $confidence_score
+                """, rule_id=rule_id, experience=experience, confidence_score=confidence_score
             )
-            logger.info(f"Ontology rule {rule_id} stored under domain {domain}.")
+            logger.info(f"Stored experiential knowledge for rule {rule_id}.")
 
-    def update_graph(self, rule, validation_results):
+    def track_semantic_shift(self, rule_id, new_meaning):
         """
-        Updates the knowledge graph with rule validity and Monte Carlo-based confidence scores.
+        Tracks changes in the meaning of rules over time.
+        
+        Args:
+            rule_id (str): Unique identifier for the rule.
+            new_meaning (str): Updated interpretation.
         """
-        confidence_score = self.monte_carlo_validation(rule)
-        meaning_variation = self.analyze_semantics(rule)
-        refinement = self.analyze_feedback(rule, validation_results)
-
-        logger.info(f"Updating rule '{rule}' with confidence score: {confidence_score}")
-
         with self.driver.session() as session:
             session.run(
                 """
-                MERGE (r:Rule {name: $rule})
-                SET r.confidence_score = $confidence_score,
-                    r.meaning_variation = $meaning_variation,
-                    r.refinement = $refinement
-                """,
-                rule=rule, confidence_score=confidence_score, meaning_variation=meaning_variation, refinement=refinement
+                MATCH (r:Knowledge {id: $rule_id})
+                SET r.evolution = $new_meaning
+                """, rule_id=rule_id, new_meaning=new_meaning
             )
+            logger.info(f"Updated semantic meaning for rule {rule_id}.")
 
-    def monte_carlo_validation(self, rule):
+    def rank_knowledge_confidence(self, rule_id):
         """
-        Runs Monte Carlo simulations to evaluate rule reliability.
-
+        Retrieves confidence scores for stored rules and ranks them accordingly.
+        
+        Args:
+            rule_id (str): Unique identifier for the rule.
+        
         Returns:
-            float: Confidence score (0 to 1) based on probabilistic validation.
+            float: The confidence ranking of the rule.
         """
-        successful_cases = 0
-        for _ in range(self.num_simulations):
-            simulated_rule = self.generate_random_variation(rule)
-            if self.validate_simulated_rule(simulated_rule):
-                successful_cases += 1
-        return successful_cases / self.num_simulations  # Probability of correctness
-
-    def generate_random_variation(self, rule):
-        """
-        Creates a stochastic variation of the rule for probabilistic testing.
-        """
-        query = f"Generate a randomized version of the rule '{rule}' for probabilistic validation."
-        return LLM.ask(query)
-
-    def validate_simulated_rule(self, rule):
-        """
-        Uses LLM or external validation logic to check if the simulated rule is valid.
-        """
-        query = f"Is the rule '{rule}' logically valid?"
-        return "valid" in LLM.ask(query).lower()
-
-    def analyze_semantics(self, rule):
-        """
-        Uses LLM to analyze how rule meaning evolves over time.
-        """
-        query = f"How has the meaning of '{rule}' evolved in different logical contexts?"
-        return LLM.ask(query)
-
-    def analyze_feedback(self, rule, feedback):
-        """
-        Uses LLM to determine how rule meaning should shift based on feedback.
-        """
-        query = f"How should the meaning of '{rule}' adapt based on this feedback: {feedback}?"
-        return LLM.ask(query)
+        with self.driver.session() as session:
+            result = session.run(
+                """
+                MATCH (r:Knowledge {id: $rule_id})
+                RETURN r.confidence_score as confidence
+                """, rule_id=rule_id
+            )
+            confidence = result.single()["confidence"] if result else 0.0
+            logger.info(f"Retrieved confidence score for rule {rule_id}: {confidence}.")
+            return confidence
