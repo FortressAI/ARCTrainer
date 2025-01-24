@@ -21,7 +21,9 @@ def upload_image():
         return jsonify({"error": "No image uploaded"}), 400
 
     image = request.files["image"]
-    file_path = os.path.join(app.config["UPLOAD_FOLDER"], image.filename)
+    file_path = os.path.normpath(os.path.join(app.config["UPLOAD_FOLDER"], image.filename))
+    if not file_path.startswith(os.path.abspath(app.config["UPLOAD_FOLDER"])):
+        return jsonify({"error": "Invalid file path"}), 400
     image.save(file_path)
 
     # Process Image with BLIP
