@@ -8,4 +8,4 @@ datasets==2.14.0              # Hugging Face Datasets for managing data
 networkx==3.2                 # Knowledge graph visualization
 matplotlib==3.8.0             # Plotting library for graph visualization
 pyswip==0.2.10                # SWI-Prolog integration for Python
-scikit-learn==1.3.0           # Machine learning utilities
+scikit-learn==1.5.0           # Machine learning utilities
