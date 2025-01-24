@@ -3,7 +3,7 @@ neo4j==5.7.0                  # Neo4j driver for Python
 loguru==0.6.0                 # Logging utility
 requests==2.31.0              # HTTP requests library
 gunicorn==20.1.0              # Production WSGI server for Flask
-transformers==4.33.0          # Hugging Face Transformers for LLM fine-tuning
+transformers==4.38.0          # Hugging Face Transformers for LLM fine-tuning
 datasets==2.14.0              # Hugging Face Datasets for managing data
 networkx==3.2                 # Knowledge graph visualization
 matplotlib==3.8.0             # Plotting library for graph visualization
