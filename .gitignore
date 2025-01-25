@@ -1,0 +1,54 @@
+# Python Bytecode and Caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.swp
+
+# Virtual Environment
+venv/
+.env
+*.env
+
+# Logs and Temporary Files
+logs/
+*.log
+debug.log
+
+# Uploads and Datasets
+uploads/
+datasets/
+
+# Neo4j Database Files (if applicable)
+*.db
+neo4j/
+neo4j-data/
+neo4j-import/
+neo4j-logs/
+
+# Jupyter Notebook Checkpoints (if used)
+.ipynb_checkpoints/
+
+# Compiled Static Files
+*.so
+*.dll
+
+# Ignore IDE and Editor Configurations
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Docker and Deployment Files
+docker-compose.override.yml
+*.dockerfile
+
+# Node.js Frontend Dependencies (if any)
+node_modules/
+package-lock.json
+
+# Exclude Hidden System Files (Mac & Linux)
+.DS_Store
+Thumbs.db
+.env.env
+.env

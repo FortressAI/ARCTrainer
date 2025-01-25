@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    container_name: arc_trainer_app
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/app
+    environment:
+      - CONFIG_FILE=config.json
+    depends_on:
+      - neo4j
+
+  neo4j:
+    image: neo4j:latest
+    container_name: neo4j
+    ports:
+      - "7474:7474" # Neo4j Browser HTTP
+      - "7687:7687" # Bolt protocol
+    environment:
+      - NEO4J_AUTH=neo4j/password
+    volumes:
+      - neo4j_data:/data
+
+volumes:
+  neo4j_data:
