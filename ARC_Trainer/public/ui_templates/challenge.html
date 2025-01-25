@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Last Human Test - ARC Trainer</title>
+    <title>ARC Trainer - AI Challenge Interface</title>
     <link rel="stylesheet" href="css/common.css">
 </head>
 <body>
     <header>
-        <h1>Last Human Test</h1>
+        <h1>ARC Trainer AI Challenge</h1>
         <nav>
             <ul>
                 <li><a href="index.html">Home</a></li>
@@ -19,15 +19,29 @@
     </header>
 
     <main>
+        <!-- Image Upload for Last Human Test -->
         <section>
             <h2>Upload an Image for the Last Human Test</h2>
             <input type="file" id="image-upload" accept="image/*">
             <button id="process-image">Generate Reasoning Challenge</button>
+            <div id="language-game-output">Awaiting image processing...</div>
         </section>
 
+        <!-- Load ARC Dataset Task -->
         <section>
-            <h2>Generated Challenge</h2>
-            <div id="language-game-output">Awaiting image processing...</div>
+            <h2>Load an ARC Dataset Task</h2>
+            <label for="arc-task-name">Enter Task Name:</label>
+            <input type="text" id="arc-task-name" placeholder="default_task">
+            <button id="load-arc-task">Load Task</button>
+            <pre id="arc-task-output">ARC task details will be displayed here.</pre>
+        </section>
+
+        <!-- AI Reasoning Validation -->
+        <section>
+            <h2>Validate AI-Generated Reasoning</h2>
+            <textarea id="reasoning-input" placeholder="Enter reasoning input here..." rows="3"></textarea>
+            <button id="validate-reasoning">Validate</button>
+            <div id="reasoning-validation-output">Validation results will appear here.</div>
         </section>
     </main>
 
