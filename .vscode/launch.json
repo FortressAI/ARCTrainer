@@ -1,0 +1,15 @@
+{
+    "name": "Python: Attach to ARC Trainer",
+    "type": "python",
+    "request": "attach",
+    "connect": {
+        "host": "localhost",
+        "port": 5678
+    },
+    "pathMappings": [
+        {
+            "localRoot": "${workspaceFolder}/src",
+            "remoteRoot": "/app/src"
+        }
+    ]
+}
