@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Last Human Test - ARC Trainer</title>
+    <link rel="stylesheet" href="css/common.css">
+</head>
+<body>
+    <header>
+        <h1>Last Human Test</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="challenge.html">Challenge AI</a></li>
+                <li><a href="leaderboard.html">Leaderboard</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section>
+            <h2>Upload an Image for the Last Human Test</h2>
+            <input type="file" id="image-upload" accept="image/*">
+            <button id="process-image">Generate Reasoning Challenge</button>
+        </section>
+
+        <section>
+            <h2>Generated Challenge</h2>
+            <div id="language-game-output">Awaiting image processing...</div>
+        </section>
+    </main>
+
+    <script src="js/image_processor.js"></script>
+</body>
+</html>

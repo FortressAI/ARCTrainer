@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARC Trainer Interface</title>
+    <link rel="stylesheet" href="css/common.css">
+    <link rel="stylesheet" href="css/testing_interface.css">
+    <script src="js/common.js" defer></script>
+    <script src="js/testing_interface.js" defer></script>
+</head>
+<body>
+    <header>
+        <h1>ARC Trainer</h1>
+    </header>
+
+    <main>
+        <section id="task-section">
+            <h2>Task Demonstration</h2>
+            <div id="task-demo">
+                <!-- Placeholder for task input/output grid -->
+            </div>
+            <button id="reset-grid">Reset Grid</button>
+        </section>
+
+        <section id="input-section">
+            <h2>Test Input Grid</h2>
+            <div id="grid-container">
+                <!-- Placeholder for input grid -->
+            </div>
+            <button id="submit-task">Submit</button>
+        </section>
+
+        <section id="feedback-section">
+            <h2>Feedback</h2>
+            <label for="session-id">Session ID:</label>
+            <input type="text" id="session-id" placeholder="Enter session ID">
+
+            <label for="feedback-text">Feedback:</label>
+            <textarea id="feedback-text" placeholder="Enter your feedback"></textarea>
+
+            <button id="submit-feedback">Submit Feedback</button>
+        </section>
+
+        <section id="metrics-section">
+            <h2>Metrics</h2>
+            <label for="metric-type">Metric Type:</label>
+            <select id="metric-type">
+                <option value="tasks">Task Metrics</option>
+                <option value="system">System Metrics</option>
+            </select>
+
+            <button id="fetch-metrics">Fetch Metrics</button>
+        </section>
+
+        <section id="message-section">
+            <h2>Messages</h2>
+            <div id="message-box" class="info"></div>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 ARC Trainer</p>
+    </footer>
+</body>
+</html>

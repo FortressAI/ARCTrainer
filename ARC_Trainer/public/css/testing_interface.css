@@ -1,0 +1,74 @@
+/* css/testing_interface.css */
+
+#grid-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    margin: 1rem 0;
+}
+
+.grid-row {
+    display: flex;
+}
+
+.grid-cell {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f9f9f9;
+}
+
+.grid-cell.cell-0 {
+    background-color: #fff;
+}
+
+.grid-cell.cell-1 {
+    background-color: #ffdd57;
+}
+
+.grid-cell.cell-2 {
+    background-color: #57a4ff;
+}
+
+.grid-cell.cell-3 {
+    background-color: #ff5757;
+}
+
+.grid-cell.cell-4 {
+    background-color: #57ff57;
+}
+
+#task-demo {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+#task-demo div {
+    width: 50px;
+    height: 50px;
+    border: 1px solid #ddd;
+    background-color: #eaeaea;
+}
+
+textarea {
+    resize: none;
+}
+
+button {
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    #grid-container {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .grid-cell {
+        width: 40px;
+        height: 40px;
+    }
+}
