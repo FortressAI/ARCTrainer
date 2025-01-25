@@ -1,4 +1,4 @@
-version: "3.8"
+# version: "3.8"  <-- Remove if using Docker Compose v2+
 
 services:
   app:
@@ -7,11 +7,12 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - .:/app
+      - .:/app:delegated
     environment:
       - CONFIG_FILE=config.json
     depends_on:
-      - neo4j
+      neo4j:
+        condition: service_healthy  # Ensure Neo4j is ready before starting the app
 
   neo4j:
     image: neo4j:latest
@@ -20,9 +21,17 @@ services:
       - "7474:7474" # Neo4j Browser HTTP
       - "7687:7687" # Bolt protocol
     environment:
-      - NEO4J_AUTH=neo4j/password
+      - NEO4J_AUTH=${NEO4J_USER}:${NEO4J_PASSWORD}
     volumes:
       - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7474"]
+      interval: 30s
+      retries: 3
 
 volumes:
   neo4j_data:
+  neo4j_logs:
+  neo4j_import:
