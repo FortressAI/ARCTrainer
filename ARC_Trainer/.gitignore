@@ -17,7 +17,7 @@ debug.log
 
 # Uploads and Datasets
 uploads/
-datasets/
+
 
 # Neo4j Database Files (if applicable)
 *.db
