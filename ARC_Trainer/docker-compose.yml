@@ -1,35 +1,30 @@
-# version: "3.8"  <-- Remove if using Docker Compose v2+
+version: "3.8"
 
 services:
   app:
     build: .
     container_name: arc_trainer_app
     ports:
-      - "5000:5000"
+      - "5001:5000"
     volumes:
       - .:/app:delegated
     environment:
       - CONFIG_FILE=config.json
     depends_on:
-      neo4j:
-        condition: service_healthy  # Ensure Neo4j is ready before starting the app
+      - neo4j  # Ensures Neo4j starts before the app
 
   neo4j:
     image: neo4j:latest
     container_name: neo4j
     ports:
-      - "7474:7474" # Neo4j Browser HTTP
-      - "7687:7687" # Bolt protocol
+      - "7474:7474"  # Neo4j Browser (HTTP)
+      - "7687:7687"  # Bolt Protocol
     environment:
-      - NEO4J_AUTH=${NEO4J_USER}:${NEO4J_PASSWORD}
+      - NEO4J_AUTH=neo4j/mysecurepassword  # Hardcoded for now
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
       - neo4j_import:/var/lib/neo4j/import
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7474"]
-      interval: 30s
-      retries: 3
 
 volumes:
   neo4j_data:

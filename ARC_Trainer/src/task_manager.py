@@ -1,23 +1,19 @@
+import os
+import json
 from flask import Flask, request, jsonify
 from neo4j import GraphDatabase
 from loguru import logger
 import uuid
-from llm_client import LLMClient
-from prolog_rule_generator import PrologRuleGenerator
-from learning_agent import LearningAgent
+from src.llm_client import LLMClient
+from src.PrologRuleGenerator import PrologRuleGenerator
+from src.learning_agent import LearningAgent
 
 app = Flask(__name__)
 
+DATASET_DIR = "datasets"  # Ensure dataset path is correct
+
 class TaskManager:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
-        """
-        Initializes the Task Manager with Neo4j and Prolog integration.
-
-        Args:
-            uri (str): URI for connecting to Neo4j.
-            user (str): Username for Neo4j authentication.
-            password (str): Password for Neo4j authentication.
-        """
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         self.llm_client = LLMClient()
         self.prolog_generator = PrologRuleGenerator()
@@ -134,6 +130,20 @@ class TaskManager:
             logger.error(f"Ontology validation failed: {e}")
             return {"error": "Validation error"}
 
+    def load_arc_task(self, task_name):
+        """
+        Loads an ARC dataset task from the datasets directory.
+        """
+        task_path = os.path.join(DATASET_DIR, f"{task_name}.json")
+
+        if not os.path.exists(task_path):
+            return {"error": f"Task '{task_name}' not found in dataset"}, 404
+
+        with open(task_path, "r") as file:
+            task_data = json.load(file)
+
+        return task_data, 200
+
 @app.route("/tasks", methods=["POST"])
 def submit_task():
     """
@@ -188,6 +198,17 @@ def validate_rule():
     except Exception as e:
         logger.error(f"Error in validate_rule endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
+
+@app.route("/api/load-arc-task", methods=["GET"])
+def load_arc_task():
+    """
+    API endpoint to load an ARC dataset task.
+    """
+    task_name = request.args.get("task_name", "default_task")
+    task_manager = TaskManager()
+    response, status_code = task_manager.load_arc_task(task_name)
+    task_manager.close()
+    return jsonify(response), status_code
 
 if __name__ == "__main__":
     logger.info("Starting Task Manager API")

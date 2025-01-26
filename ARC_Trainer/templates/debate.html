@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI Debate Mode</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <script src="{{ url_for('static', filename='js/debate_history.js') }}" defer></script>
+</head>
+<body>
+    <h1>AI Debate Mode</h1>
+    <input type="text" id="debate-rule" placeholder="Enter Debate Rule">
+    <button id="start-debate">Start Debate</button>
+    <div id="agent1-response"></div>
+    <div id="agent2-response"></div>
+    <div id="contradiction-result"></div>
+</body>
+</html>

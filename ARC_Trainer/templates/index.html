@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>ARC Trainer Interface</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <script src="{{ url_for('static', filename='js/mode_switcher.js') }}" defer></script>
+</head>
+<body>
+    <h1>Welcome to ARC Trainer</h1>
+    <button onclick="setMode('arc')">ARC Dataset Mode</button>
+    <button onclick="setMode('last-human')">Last Human Mode</button>
+    <button onclick="setMode('debate')">AI Debate Mode</button>
+</body>
+</html>

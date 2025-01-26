@@ -1,6 +1,6 @@
 import pyswip
 from loguru import logger
-from llm_client import LLMClient
+from src.llm_client import LLMClient
 
 class PrologRuleGenerator:
     def __init__(self, prolog_path="prolog_engine.pl"):

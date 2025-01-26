@@ -1,11 +1,12 @@
-from flask import Flask, request, jsonify
 import os
 import json
 import torch
 import requests
+from flask import Flask, request, jsonify
 from dotenv import load_dotenv
 from PIL import Image
 from transformers import BlipProcessor, BlipForConditionalGeneration
+from src.task_manager import TaskManager  # Import centralized ARC dataset handling
 
 # Load environment variables from .env file
 load_dotenv()
@@ -19,9 +20,7 @@ USE_HF_API = bool(HF_BLIP_ENDPOINT and HF_BEARER_TOKEN)
 app = Flask(__name__)
 
 UPLOAD_FOLDER = "uploads"
-DATASET_FOLDER = "datasets"
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(DATASET_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 
 # Initialize Local BLIP Model (Only if Hugging Face API is not used)
@@ -29,28 +28,18 @@ if not USE_HF_API:
     processor = BlipProcessor.from_pretrained("Salesforce/blip-image-captioning-large")
     model = BlipForConditionalGeneration.from_pretrained("Salesforce/blip-image-captioning-large")
 
-# -------------------- ARC Dataset Processing --------------------
-
-def load_arc_task(task_name):
-    """Loads an ARC dataset task from the datasets folder."""
-    task_file = os.path.join(DATASET_FOLDER, "evaluation", f"{task_name}.json")
-    
-    if not os.path.exists(task_file):
-        return None
-
-    with open(task_file, "r") as f:
-        return json.load(f)
+# -------------------- ARC Dataset Processing (Delegated to TaskManager) --------------------
 
 @app.route("/api/load-arc-task", methods=["GET"])
 def load_arc_test():
-    """Loads an ARC dataset task for AI processing."""
-    task_name = request.args.get("task_name", "default_task")  # Default ARC task
-
-    task = load_arc_task(task_name)
-    if task is None:
-        return jsonify({"error": f"Task '{task_name}' not found."}), 404
-
-    return jsonify({"task_name": task_name, "task_data": task})
+    """
+    Loads an ARC dataset task using TaskManager.
+    """
+    task_name = request.args.get("task_name", "default_task")
+    task_manager = TaskManager()
+    response, status_code = task_manager.load_arc_task(task_name)
+    task_manager.close()
+    return jsonify(response), status_code
 
 # -------------------- Image Processing (Last Human Test) --------------------
 
@@ -83,10 +72,7 @@ def upload_image():
     image.save(file_path)
 
     # Process image with Hugging Face API or local model
-    if USE_HF_API:
-        caption = process_image_with_huggingface(file_path)
-    else:
-        caption = process_image_locally(file_path)
+    caption = process_image_with_huggingface(file_path) if USE_HF_API else process_image_locally(file_path)
 
     # Generate a reasoning challenge based on the image description
     reasoning_prompt = f"Based on the image description '{caption}', generate a logical puzzle."

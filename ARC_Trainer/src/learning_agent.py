@@ -1,7 +1,7 @@
 from neo4j import GraphDatabase
 from loguru import logger
-from llm_client import LLMClient
-from prolog_rule_generator import PrologRuleGenerator
+from src.llm_client import LLMClient
+from src.PrologRuleGenerator  import PrologRuleGenerator
 
 class LearningAgent:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):

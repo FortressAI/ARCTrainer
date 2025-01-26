@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ARC Dataset Mode</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/testing_interface.css') }}">
+    <script src="{{ url_for('static', filename='js/grid_renderer.js') }}" defer></script>
+</head>
+<body>
+    <h1>ARC Dataset Mode</h1>
+
+    <div id="arc-container">
+        <!-- Task Demonstration Grid -->
+        <div id="task-demo">
+            <h2>Task Demonstration</h2>
+            <div id="task-demo-grid"></div>
+        </div>
+
+        <!-- Test Input Grid -->
+        <div id="test-grid">
+            <h2>Test Input Grid</h2>
+            <button id="next-test-input">Next test input</button>
+            <div id="test-input-grid"></div>
+        </div>
+
+        <!-- Editable User Submission Grid -->
+        <div id="user-grid">
+            <h2>Your Submission</h2>
+            <button id="copy-from-input">Copy from input</button>
+            <button id="reset-grid">Reset grid</button>
+            <div id="submission-grid"></div>
+        </div>
+    </div>
+
+    <div id="grid-controls">
+        <label for="grid-size">Grid Size:</label>
+        <input type="text" id="grid-size" value="3x3">
+        <button id="resize-grid">Resize</button>
+        <button id="submit-solution">Submit</button>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.getElementById("load-arc-task").click(); // Auto-load a task when the page loads
+        });
+    </script>
+</body>
+</html>

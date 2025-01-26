@@ -1,7 +1,7 @@
 from loguru import logger
 from neo4j import GraphDatabase
 import random
-from llm_client import LLM  # Uses LLM for Socratic questioning & counterfactuals
+from src.llm_client import LLM  # Uses LLM for Socratic questioning & counterfactuals
 
 class CounterexampleFinder:
     def __init__(self, neo4j_uri, neo4j_user, neo4j_password, num_simulations=1000):

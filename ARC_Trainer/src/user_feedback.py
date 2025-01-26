@@ -1,8 +1,8 @@
 from flask import Flask, request, jsonify
 from neo4j import GraphDatabase
 from loguru import logger
-from llm_client import LLMClient
-from learning_agent import LearningAgent
+from src.llm_client import LLMClient
+from src.learning_agent import LearningAgent
 
 app = Flask(__name__)
 

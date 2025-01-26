@@ -1,9 +1,9 @@
 from neo4j import GraphDatabase
 from loguru import logger
 from pyswip import Prolog
-from graph_rag import GraphRAG
-from user_feedback import UserFeedback
-from llm_fine_tuner import LLMFineTuner
+from src.graph_rag import GraphRAG
+from src.user_feedback import UserFeedback
+from src.llm_fine_tuner import LLMFineTuner
 
 class ControlAgent:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", config_file="config.json"):
