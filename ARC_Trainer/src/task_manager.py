@@ -18,7 +18,6 @@ class TaskManager:
         self.llm_client = LLMClient()
         self.prolog_generator = PrologRuleGenerator()
         self.learning_agent = LearningAgent()
-
         logger.info("TaskManager initialized with multi-domain ontology support.")
 
     def close(self):
@@ -26,15 +25,7 @@ class TaskManager:
         self.driver.close()
 
     def submit_task(self, task_data):
-        """
-        Submits a new ontology rule to the system.
-
-        Args:
-            task_data (dict): Contains ontology rule details.
-
-        Returns:
-            dict: Task ID and status.
-        """
+        """Submits a new ontology rule to the system."""
         try:
             task_id = str(uuid.uuid4())
             cnl_rule = task_data.get("cnl_rule")
@@ -73,15 +64,7 @@ class TaskManager:
             return {"error": "Failed to submit ontology rule"}
 
     def get_task_status(self, task_id):
-        """
-        Retrieves the status and metadata of a submitted ontology task.
-
-        Args:
-            task_id (str): Task ID.
-
-        Returns:
-            dict: Task status and metadata.
-        """
+        """Retrieves the status and metadata of a submitted ontology task."""
         try:
             with self.driver.session() as session:
                 result = session.run(
@@ -91,119 +74,85 @@ class TaskManager:
                     """,
                     task_id=task_id
                 )
-
                 record = result.single()
                 if record:
-                    logger.info(f"Task {task_id} status retrieved.")
                     return {
                         "status": record["status"],
                         "cnl_rule": record["cnl_rule"],
                         "prolog_rule": record["prolog_rule"],
                         "domain": record["domain"]
                     }
-                else:
-                    return {"error": "Task not found"}
-
+                return {"error": "Task not found"}
         except Exception as e:
             logger.error(f"Error retrieving task {task_id}: {e}")
             return {"error": "Internal server error"}
 
     def validate_ontology_rule(self, rule):
-        """
-        Validates an ontology rule before storage.
-
-        Args:
-            rule (str): Prolog rule to validate.
-
-        Returns:
-            dict: Validation status.
-        """
+        """Validates an ontology rule before storage."""
         try:
             validation_result = self.prolog_generator.validate_rule_against_test_cases(rule, [])
-
             if validation_result:
                 return {"status": "valid"}
-            else:
-                return {"status": "invalid", "error": "Rule did not pass validation"}
-
+            return {"status": "invalid", "error": "Rule did not pass validation"}
         except Exception as e:
             logger.error(f"Ontology validation failed: {e}")
             return {"error": "Validation error"}
 
     def load_arc_task(self, task_name):
-        """
-        Loads an ARC dataset task from the datasets directory.
-        """
+        """Loads an ARC dataset task from the datasets directory."""
         task_path = os.path.join(DATASET_DIR, f"{task_name}.json")
-
         if not os.path.exists(task_path):
             return {"error": f"Task '{task_name}' not found in dataset"}, 404
-
         with open(task_path, "r") as file:
             task_data = json.load(file)
-
         return task_data, 200
 
 @app.route("/tasks", methods=["POST"])
 def submit_task():
-    """
-    API endpoint to submit an ontology rule.
-    """
+    """API endpoint to submit an ontology rule."""
     try:
         task_data = request.json
         if not task_data:
             return jsonify({"error": "Task data is required"}), 400
-
         manager = TaskManager()
         response = manager.submit_task(task_data)
         manager.close()
         return jsonify(response), 200
-
     except Exception as e:
         logger.error(f"Error in submit_task endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/tasks/<task_id>", methods=["GET"])
 def get_task_status(task_id):
-    """
-    API endpoint to retrieve the status of a submitted ontology task.
-    """
+    """API endpoint to retrieve the status of a submitted ontology task."""
     try:
         manager = TaskManager()
         response = manager.get_task_status(task_id)
         manager.close()
         return jsonify(response), 200
-
     except Exception as e:
         logger.error(f"Error in get_task_status endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/validate_rule", methods=["POST"])
 def validate_rule():
-    """
-    API endpoint to validate an ontology rule.
-    """
+    """API endpoint to validate an ontology rule."""
     try:
         data = request.json
         rule = data.get("rule")
-
         if not rule:
             return jsonify({"error": "Rule is required"}), 400
-
         manager = TaskManager()
         response = manager.validate_ontology_rule(rule)
         manager.close()
         return jsonify(response), 200
-
     except Exception as e:
         logger.error(f"Error in validate_rule endpoint: {e}")
         return jsonify({"error": "Internal server error"}), 500
 
 @app.route("/api/load-arc-task", methods=["GET"])
 def load_arc_task():
-    """
-    API endpoint to load an ARC dataset task.
-    """
+    """API endpoint to load an ARC dataset task."""
     task_name = request.args.get("task_name", "default_task")
     task_manager = TaskManager()
     response, status_code = task_manager.load_arc_task(task_name)
