@@ -1,75 +1,63 @@
-class Grid {
-    constructor(height, width, values) {
-        this.height = height;
-        this.width = width;
-        this.grid = new Array(height);
-        for (let i = 0; i < height; i++) {
-            this.grid[i] = new Array(width);
-            for (let j = 0; j < width; j++) {
-                this.grid[i][j] = values?.[i]?.[j] ?? 0;
-            }
+document.addEventListener("DOMContentLoaded", function() {
+    class ARCGrid {
+        constructor(gridContainerId) {
+            this.gridContainer = document.getElementById(gridContainerId);
+            this.gridData = [];
+        }
+
+        renderGrid(gridSize, data = null, editable = false) {
+            this.gridContainer.innerHTML = "";
+            this.gridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 40px)`;
+            this.gridData = data || Array(gridSize).fill().map(() => Array(gridSize).fill(0));
+
+            this.gridData.forEach((row, rowIndex) => {
+                row.forEach((cell, colIndex) => {
+                    let div = document.createElement("div");
+                    div.classList.add("grid-cell");
+                    div.textContent = cell;
+                    div.dataset.row = rowIndex;
+                    div.dataset.col = colIndex;
+                    if (editable) div.contentEditable = "true";
+                    div.addEventListener("input", (event) => this.updateGridData(event));
+                    this.gridContainer.appendChild(div);
+                });
+            });
+        }
+
+        updateGridData(event) {
+            let cell = event.target;
+            let row = parseInt(cell.dataset.row);
+            let col = parseInt(cell.dataset.col);
+            this.gridData[row][col] = cell.textContent.trim() || "0";
+        }
+
+        getGridData() {
+            return this.gridData;
         }
     }
-}
 
-function floodfillFromLocation(grid, i, j, symbol) {
-    i = parseInt(i);
-    j = parseInt(j);
-    symbol = parseInt(symbol);
-    let target = grid[i][j];
-    if (target === symbol) return;
+    const inputGrid = new ARCGrid("input-grid-container");
+    const outputGrid = new ARCGrid("output-grid-container");
 
-    function flow(i, j, symbol, target) {
-        if (i >= 0 && i < grid.length && j >= 0 && j < grid[i].length) {
-            if (grid[i][j] === target) {
-                grid[i][j] = symbol;
-                flow(i - 1, j, symbol, target);
-                flow(i + 1, j, symbol, target);
-                flow(i, j - 1, symbol, target);
-                flow(i, j + 1, symbol, target);
-            }
-        }
-    }
-    flow(i, j, symbol, target);
-}
+    document.getElementById("load-task-btn").addEventListener("click", function() {
+        let fileInput = document.getElementById("load-task-file");
+        let file = fileInput.files[0];
+        if (!file) return UIHelpers.showAlert("Please select a task file.", "error");
 
-function parseSizeTuple(size) {
-    let dimensions = size.split('x').map(Number);
-    if (dimensions.length !== 2 || dimensions.some(n => n < 1 || n > 30)) {
-        alert('Grid size should have the format "3x3", "5x7", etc., with values between 1 and 30.');
-        return;
-    }
-    return dimensions;
-}
+        let reader = new FileReader();
+        reader.onload = function(e) {
+            let taskData = JSON.parse(e.target.result);
+            inputGrid.renderGrid(taskData.train[0].input.length, taskData.train[0].input);
+            outputGrid.renderGrid(taskData.train[0].input.length, null, true);
+        };
+        reader.readAsText(file);
+    });
 
-function convertSerializedGridToGridObject(values) {
-    return new Grid(values.length, values[0].length, values);
-}
-
-function fillJqGridWithData(jqGrid, dataGrid) {
-    jqGrid.empty();
-    for (let i = 0; i < dataGrid.height; i++) {
-        let row = $('<div class="row"></div>');
-        for (let j = 0; j < dataGrid.width; j++) {
-            let cell = $('<div class="cell"></div>').attr({ x: i, y: j }).addClass(`symbol_${dataGrid.grid[i][j]}`);
-            row.append(cell);
-        }
-        jqGrid.append(row);
-    }
-}
-
-function setCellSymbol(cell, symbol) {
-    cell.attr('symbol', symbol).removeClass().addClass(`cell symbol_${symbol}`).text($('#show_symbol_numbers').is(':checked') ? symbol : '');
-}
-
-function changeSymbolVisibility() {
-    $('.cell').each((_, cell) => $(cell).text($('#show_symbol_numbers').is(':checked') ? $(cell).attr('symbol') : ''));
-}
-
-function infoMsg(msg) {
-    $('#info_display').stop(true, true).hide().text(msg).fadeIn().fadeOut(5000);
-}
-
-function errorMsg(msg) {
-    $('#error_display').stop(true, true).hide().text(msg).fadeIn().fadeOut(5000);
-}
+    document.getElementById("submit-task-btn").addEventListener("click", function() {
+        let outputData = outputGrid.getGridData();
+        ARC.submitSolution(outputData)
+        .then(data => {
+            document.getElementById("ai-output").textContent = JSON.stringify(data.solution, null, 2);
+        });
+    });
+});

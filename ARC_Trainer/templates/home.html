@@ -2,14 +2,21 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ARC Dataset Mode</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/testing_interface.css') }}">
     <script src="{{ url_for('static', filename='js/grid_renderer.js') }}" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/5.16.0/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popoto@3.0.1/dist/popoto.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/popoto@3.0.1/dist/popoto.min.css">
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #popoto-graph { width: 100%; height: 600px; }
+    </style>
 </head>
 <body>
     <h1>ARC Dataset Mode</h1>
-
     <div id="arc-container">
         <!-- Task Demonstration Grid -->
         <div id="task-demo">
@@ -33,16 +40,16 @@
         </div>
     </div>
 
-    <div id="grid-controls">
-        <label for="grid-size">Grid Size:</label>
-        <input type="text" id="grid-size" value="3x3">
-        <button id="resize-grid">Resize</button>
-        <button id="submit-solution">Submit</button>
+    <!-- Knowledge Graph Visualization -->
+    <div id="knowledge-graph">
+        <h2>Knowledge Graph</h2>
+        <div id="popoto-graph"></div>
     </div>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            document.getElementById("load-arc-task").click(); // Auto-load a task when the page loads
+        document.addEventListener("DOMContentLoaded", function() {
+            popoto.rest.CYPHER_URL = "/api/knowledge-graph";
+            popoto.graph.init("popoto-graph", "Task");
         });
     </script>
 </body>

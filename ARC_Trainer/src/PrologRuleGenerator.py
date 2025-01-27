@@ -3,7 +3,7 @@ from loguru import logger
 from src.llm_client import LLMClient
 
 class PrologRuleGenerator:
-    def __init__(self, prolog_path="prolog_engine.pl"):
+    def __init__(self, prolog_path="/prolog_rules/prolog_engine.pl"):
         """
         Initializes the Prolog Rule Generator for ontology validation.
 

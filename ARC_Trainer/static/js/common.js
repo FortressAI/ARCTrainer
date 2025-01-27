@@ -1,122 +1,83 @@
-// js/common.js
-
-// Utility function to make API requests
-async function apiRequest(url, method = "GET", body = null) {
-    try {
-        const options = {
-            method,
-            headers: {
-                "Content-Type": "application/json",
-            },
-        };
-
-        if (body) {
-            options.body = JSON.stringify(body);
+document.addEventListener("DOMContentLoaded", function() {
+    class TestingInterface {
+        constructor() {
+            this.initButtons();
         }
 
-        const response = await fetch(url, options);
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || "Unknown error occurred");
+        initButtons() {
+            document.getElementById("load-task-btn").addEventListener("click", () => this.loadTask());
+            document.getElementById("submit-task-btn").addEventListener("click", () => this.submitTask());
+            document.getElementById("approve-btn").addEventListener("click", () => this.validateReasoning("approved"));
+            document.getElementById("reject-btn").addEventListener("click", () => this.validateReasoning("rejected"));
+            document.getElementById("modify-btn").addEventListener("click", () => this.modifyTask());
         }
 
-        return result;
-    } catch (error) {
-        console.error(`API Request Error: ${error.message}`);
-        throw error;
-    }
-}
+        loadTask() {
+            let fileInput = document.getElementById("load-task-file");
+            let file = fileInput.files[0];
+            if (!file) return UIHelpers.showAlert("Please select a task file.", "error");
 
-// Function to display messages in the UI
-function displayMessage(message, type = "info") {
-    const messageBox = document.getElementById("message-box");
-    if (messageBox) {
-        messageBox.textContent = message;
-        messageBox.className = type; // Apply class for styling (e.g., info, success, error)
-    }
-}
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                let taskData = JSON.parse(e.target.result);
+                renderTaskGrid(taskData);
+            };
+            reader.readAsText(file);
+        }
 
-// Function to handle grid updates
-function updateGrid(gridData) {
-    const gridContainer = document.getElementById("grid-container");
-    if (gridContainer) {
-        gridContainer.innerHTML = ""; // Clear the grid
-
-        gridData.forEach((row) => {
-            const rowElement = document.createElement("div");
-            rowElement.className = "grid-row";
-
-            row.forEach((cell) => {
-                const cellElement = document.createElement("div");
-                cellElement.className = `grid-cell cell-${cell}`;
-                rowElement.appendChild(cellElement);
+        submitTask() {
+            let outputData = [];
+            document.querySelectorAll("#output-grid-container .grid-cell").forEach(cell => {
+                outputData.push(cell.textContent.trim() || "0");
             });
 
-            gridContainer.appendChild(rowElement);
-        });
-    }
-}
+            ARC.submitSolution(outputData)
+            .then(data => {
+                document.getElementById("ai-output").textContent = JSON.stringify(data.solution, null, 2);
+                this.loadAIDebate();
+                this.loadKnowledgeGraph();
+                this.checkRLMValidation(data.solution);
+            });
+        }
 
-// Function to reset the grid
-function resetGrid() {
-    const gridContainer = document.getElementById("grid-container");
-    if (gridContainer) {
-        gridContainer.innerHTML = ""; // Clear the grid
-    }
-}
+        loadAIDebate() {
+            API.request("/api/get-debate-history")
+            .then(data => {
+                document.getElementById("debate-log").textContent = JSON.stringify(data.debate_log, null, 2);
+            });
+        }
 
-// Function to handle feedback submission
-async function submitFeedback(sessionId, feedbackText) {
-    try {
-        const result = await apiRequest("/feedback", "POST", {
-            session_id: sessionId,
-            feedback: feedbackText,
-        });
+        loadKnowledgeGraph() {
+            KnowledgeGraph.fetchGraph()
+            .then(data => {
+                document.getElementById("kg-visual").textContent = JSON.stringify(data, null, 2);
+            });
+        }
 
-        displayMessage("Feedback submitted successfully!", "success");
-    } catch (error) {
-        displayMessage(`Failed to submit feedback: ${error.message}`, "error");
-    }
-}
+        checkRLMValidation(solution) {
+            API.request("/api/validate-rlm-reasoning", "POST", { solution: solution })
+            .then(data => {
+                document.getElementById("rlm-validation").textContent = `RLM Validation: ${data.status}`;
+            })
+            .catch(error => {
+                Logger.error("RLM Validation Error:", error);
+                UIHelpers.showAlert("Failed to validate reasoning with RLM.", "error");
+            });
+        }
 
-// Function to fetch metrics
-async function fetchMetrics(metricType) {
-    try {
-        const url = metricType === "tasks" ? "/metrics/tasks" : "/metrics/system";
-        const metrics = await apiRequest(url);
+        validateReasoning(decision) {
+            API.request("/api/validate-reasoning", "POST", { decision: decision })
+            .then(data => {
+                UIHelpers.showAlert("Decision recorded: " + decision, "success");
+            });
+        }
 
-        console.log(`Fetched ${metricType} metrics:`, metrics);
-        displayMessage(`Metrics fetched successfully! Check console for details.`, "success");
-    } catch (error) {
-        displayMessage(`Failed to fetch metrics: ${error.message}`, "error");
-    }
-}
-
-// Function to initialize event listeners
-function initializeEventListeners() {
-    const resetButton = document.getElementById("reset-grid");
-    if (resetButton) {
-        resetButton.addEventListener("click", resetGrid);
-    }
-
-    const feedbackButton = document.getElementById("submit-feedback");
-    if (feedbackButton) {
-        feedbackButton.addEventListener("click", () => {
-            const sessionId = document.getElementById("session-id").value;
-            const feedbackText = document.getElementById("feedback-text").value;
-            submitFeedback(sessionId, feedbackText);
-        });
+        modifyTask() {
+            let outputGridCells = document.querySelectorAll("#output-grid-container .grid-cell");
+            outputGridCells.forEach(cell => cell.contentEditable = "true");
+            UIHelpers.showAlert("Grid is now editable for modifications.", "info");
+        }
     }
 
-    const fetchMetricsButton = document.getElementById("fetch-metrics");
-    if (fetchMetricsButton) {
-        fetchMetricsButton.addEventListener("click", () => {
-            const metricType = document.getElementById("metric-type").value;
-            fetchMetrics(metricType);
-        });
-    }
-}
-
-// Initialize event listeners on page load
-document.addEventListener("DOMContentLoaded", initializeEventListeners);
+    new TestingInterface();
+});

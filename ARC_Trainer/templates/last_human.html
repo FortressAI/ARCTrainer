@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Last Human Mode</title>
+    <link rel="stylesheet" href="common.css">
+    <script src="common.js" defer></script>
+    <script src="debate_history.js" defer></script>
+</head>
+<body>
+    <h1>Last Human Mode</h1>
+    
+    <div id="last-human-container">
+        <h2>AI Reasoning Challenge</h2>
+        <p>This mode presents AI-generated logical challenges that require human validation and input.</p>
+        
+        <div id="challenge-container">
+            <h3>Generated Challenge</h3>
+            <pre id="challenge-output">Waiting for AI-generated challenge...</pre>
+            <button id="generate-challenge-btn">Generate Challenge</button>
+        </div>
+
+        <div id="ai-debate">
+            <h3>AI-to-AI Debate</h3>
+            <div id="debate-log">No debates yet...</div>
+        </div>
+
+        <div id="human-response">
+            <h3>Your Response</h3>
+            <textarea id="human-input" placeholder="Enter your reasoning here..."></textarea>
+            <button id="submit-human-response">Submit Response</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById("generate-challenge-btn").addEventListener("click", function() {
+            fetch("/api/generate-last-human-challenge")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("challenge-output").textContent = JSON.stringify(data, null, 2);
+            })
+            .catch(error => {
+                console.error("Error fetching challenge:", error);
+                alert("Failed to generate challenge.");
+            });
+        });
+
+        document.getElementById("submit-human-response").addEventListener("click", function() {
+            let response = document.getElementById("human-input").value;
+            if (!response) {
+                alert("Please enter a response before submitting.");
+                return;
+            }
+
+            fetch("/api/submit-human-response", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ response: response })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert("Response submitted: " + data.status);
+            })
+            .catch(error => {
+                console.error("Error submitting response:", error);
+                alert("Failed to submit response.");
+            });
+        });
+
+        function loadAIDebate() {
+            fetch("/api/get-debate-history")
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById("debate-log").textContent = JSON.stringify(data.debate_log, null, 2);
+            })
+            .catch(error => {
+                console.error("Error loading AI debate:", error);
+                alert("Failed to load AI debate.");
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            loadAIDebate();
+        });
+    </script>
+</body>
+</html>

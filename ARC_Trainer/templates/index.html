@@ -1,15 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>ARC Trainer Interface</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
-    <script src="{{ url_for('static', filename='js/mode_switcher.js') }}" defer></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARC & Last Human Mode Selector</title>
+    <link rel="stylesheet" href="common.css">
+    <script src="common.js" defer></script>
+    <script src="mode_switcher.js" defer></script>
 </head>
 <body>
-    <h1>Welcome to ARC Trainer</h1>
-    <button onclick="setMode('arc')">ARC Dataset Mode</button>
-    <button onclick="setMode('last-human')">Last Human Mode</button>
-    <button onclick="setMode('debate')">AI Debate Mode</button>
+    <h1>Welcome to the Task Selection Page</h1>
+    
+    <div id="mode-selection">
+        <h2>Select a Mode</h2>
+        <button id="arc-mode-btn" onclick="window.location.href='home.html'">Go to ARC Mode Challenge</button>
+        <button id="last-human-mode-btn" onclick="window.location.href='last_human.html'">Go to Last Human Mode</button>
+    </div>
 </body>
 </html>

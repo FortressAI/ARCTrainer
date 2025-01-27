@@ -29,10 +29,10 @@ class LLMClient:
         """
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-4",
+                model="gpt-4-turbo",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
-                max_tokens=200
+                max_tokens=500
             )
             result = response["choices"][0]["message"]["content"].strip()
             return {"response": result}

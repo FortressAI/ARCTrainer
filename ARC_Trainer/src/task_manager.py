@@ -1,6 +1,7 @@
 import os
 import json
-from flask import Flask, request, jsonify
+import random
+from flask import Flask, request, jsonify, render_template
 from neo4j import GraphDatabase
 from loguru import logger
 import uuid
@@ -10,7 +11,8 @@ from src.learning_agent import LearningAgent
 
 app = Flask(__name__)
 
-DATASET_DIR = "datasets"  # Ensure dataset path is correct
+DATASET_DIR = "datasets/training/"  # Ensure dataset path is correct
+HUMAN_VALIDATION_QUEUE = []  # Queue for human validation tasks
 
 class TaskManager:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
@@ -18,85 +20,16 @@ class TaskManager:
         self.llm_client = LLMClient()
         self.prolog_generator = PrologRuleGenerator()
         self.learning_agent = LearningAgent()
-        logger.info("TaskManager initialized with multi-domain ontology support.")
+        logger.info("TaskManager initialized with multi-domain ontology and ARC support.")
 
     def close(self):
         """Closes the connection to the Neo4j database."""
         self.driver.close()
 
-    def submit_task(self, task_data):
-        """Submits a new ontology rule to the system."""
-        try:
-            task_id = str(uuid.uuid4())
-            cnl_rule = task_data.get("cnl_rule")
-            domain = task_data.get("domain")
-
-            if not cnl_rule or not domain:
-                return {"error": "Missing ontology rule or domain."}
-
-            # Convert CNL rule to Prolog
-            prolog_response = self.llm_client.query_llm(f"Convert this into Prolog: {cnl_rule}")
-            prolog_rule = prolog_response.get("response")
-
-            if not prolog_rule:
-                logger.warning("Failed to generate Prolog rule from CNL.")
-                return {"error": "Ontology rule conversion failed"}
-
-            # Validate & Store the rule
-            validation_result = self.learning_agent.validate_and_store_rule(cnl_rule, domain)
-            if "error" in validation_result:
-                return validation_result
-
-            # Store the task metadata
-            with self.driver.session() as session:
-                session.run(
-                    """
-                    CREATE (t:Task {id: $task_id, status: 'queued', cnl_rule: $cnl_rule, prolog_rule: $prolog_rule, domain: $domain})
-                    """,
-                    task_id=task_id, cnl_rule=cnl_rule, prolog_rule=prolog_rule, domain=domain
-                )
-
-            logger.info(f"Task {task_id} submitted successfully for domain '{domain}'.")
-            return {"task_id": task_id, "status": "queued", "prolog_rule": prolog_rule}
-
-        except Exception as e:
-            logger.error(f"Error submitting task: {e}")
-            return {"error": "Failed to submit ontology rule"}
-
-    def get_task_status(self, task_id):
-        """Retrieves the status and metadata of a submitted ontology task."""
-        try:
-            with self.driver.session() as session:
-                result = session.run(
-                    """
-                    MATCH (t:Task {id: $task_id})
-                    RETURN t.status AS status, t.cnl_rule AS cnl_rule, t.prolog_rule AS prolog_rule, t.domain AS domain
-                    """,
-                    task_id=task_id
-                )
-                record = result.single()
-                if record:
-                    return {
-                        "status": record["status"],
-                        "cnl_rule": record["cnl_rule"],
-                        "prolog_rule": record["prolog_rule"],
-                        "domain": record["domain"]
-                    }
-                return {"error": "Task not found"}
-        except Exception as e:
-            logger.error(f"Error retrieving task {task_id}: {e}")
-            return {"error": "Internal server error"}
-
-    def validate_ontology_rule(self, rule):
-        """Validates an ontology rule before storage."""
-        try:
-            validation_result = self.prolog_generator.validate_rule_against_test_cases(rule, [])
-            if validation_result:
-                return {"status": "valid"}
-            return {"status": "invalid", "error": "Rule did not pass validation"}
-        except Exception as e:
-            logger.error(f"Ontology validation failed: {e}")
-            return {"error": "Validation error"}
+    def get_random_task(self):
+        """Selects a random ARC task file from the dataset directory."""
+        files = [f.replace(".json", "") for f in os.listdir(DATASET_DIR) if f.endswith(".json")]
+        return random.choice(files) if files else None
 
     def load_arc_task(self, task_name):
         """Loads an ARC dataset task from the datasets directory."""
@@ -107,58 +40,79 @@ class TaskManager:
             task_data = json.load(file)
         return task_data, 200
 
-@app.route("/tasks", methods=["POST"])
-def submit_task():
-    """API endpoint to submit an ontology rule."""
-    try:
-        task_data = request.json
-        if not task_data:
-            return jsonify({"error": "Task data is required"}), 400
-        manager = TaskManager()
-        response = manager.submit_task(task_data)
-        manager.close()
-        return jsonify(response), 200
-    except Exception as e:
-        logger.error(f"Error in submit_task endpoint: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+    def check_knowledge_graph(self, task_name):
+        """Checks if a solution already exists in the Knowledge Graph."""
+        with self.driver.session() as session:
+            result = session.run(
+                "MATCH (t:Task {name: $task_name}) RETURN t.solution AS solution, t.success AS success, t.prolog_rule AS prolog_rule",
+                task_name=task_name
+            )
+            record = result.single()
+            return record if record else None
 
-@app.route("/tasks/<task_id>", methods=["GET"])
-def get_task_status(task_id):
-    """API endpoint to retrieve the status of a submitted ontology task."""
-    try:
-        manager = TaskManager()
-        response = manager.get_task_status(task_id)
-        manager.close()
-        return jsonify(response), 200
-    except Exception as e:
-        logger.error(f"Error in get_task_status endpoint: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+    def log_counterexample(self, task_name, solution):
+        """Logs failed AI solutions into the Knowledge Graph as counterexamples."""
+        with self.driver.session() as session:
+            session.run(
+                "CREATE (t:Task {name: $task_name, failed_solution: $solution, success: False})",
+                task_name=task_name, solution=json.dumps(solution)
+            )
 
-@app.route("/validate_rule", methods=["POST"])
-def validate_rule():
-    """API endpoint to validate an ontology rule."""
-    try:
-        data = request.json
-        rule = data.get("rule")
-        if not rule:
-            return jsonify({"error": "Rule is required"}), 400
-        manager = TaskManager()
-        response = manager.validate_ontology_rule(rule)
-        manager.close()
-        return jsonify(response), 200
-    except Exception as e:
-        logger.error(f"Error in validate_rule endpoint: {e}")
-        return jsonify({"error": "Internal server error"}), 500
+    def convert_cnl_to_prolog(self, cnl_rule):
+        """Converts a Controlled Natural Language rule into Prolog using LLM."""
+        prompt = f"Convert this Controlled Natural Language rule into Prolog: {cnl_rule}"
+        response = self.llm_client.query_llm(prompt)
+        return response.get("response", "Failed to generate Prolog")
 
-@app.route("/api/load-arc-task", methods=["GET"])
-def load_arc_task():
-    """API endpoint to load an ARC dataset task."""
-    task_name = request.args.get("task_name", "default_task")
+    def validate_solution_with_prolog(self, prolog_rule):
+        """Validates the AI solution using Prolog rule matching."""
+        return self.prolog_generator.validate_rule_against_test_cases(prolog_rule, [])
+
+    def log_to_knowledge_graph(self, task_name, solution, prolog_rule, success):
+        """Stores AI solutions and Prolog-based reasoning in the Knowledge Graph."""
+        with self.driver.session() as session:
+            session.run(
+                "CREATE (t:Task {name: $task_name, solution: $solution, prolog_rule: $prolog_rule, success: $success})",
+                task_name=task_name, solution=json.dumps(solution), prolog_rule=prolog_rule, success=success
+            )
+
+    def attempt_solution(self, task_data, user_solution):
+        """Uses AI to solve the ARC task with structured reasoning, checking KG first."""
+        history = self.check_knowledge_graph(task_data["name"])
+        if history and history["success"]:
+            return history["solution"], True
+        
+        prompt = f"""
+        You are an advanced AI trained in ARC pattern recognition. Given the following task, generate a logically structured solution:
+        Task Data: {json.dumps(task_data, indent=2)}
+        Your response should be a valid JSON output matching the expected format.
+        """
+        ai_response = self.llm_client.query_llm(prompt)
+        try:
+            solution = json.loads(ai_response.get("response", "[]"))
+        except json.JSONDecodeError:
+            solution = []  # Fallback to empty if LLM output is not structured correctly
+        
+        prolog_rule = self.convert_cnl_to_prolog(json.dumps(solution))
+        if not self.validate_solution_with_prolog(prolog_rule):
+            self.log_counterexample(task_data["name"], solution)
+            return solution, False
+        
+        return solution, True
+
+@app.route("/api/knowledge-graph", methods=["GET"])
+def get_knowledge_graph():
+    """Fetches stored AI task reasoning and Prolog rules from the Knowledge Graph."""
     task_manager = TaskManager()
-    response, status_code = task_manager.load_arc_task(task_name)
+    graph_data = task_manager.fetch_knowledge_graph()
     task_manager.close()
-    return jsonify(response), status_code
+    return jsonify(graph_data)
+
+@app.route("/knowledge-graph")
+def knowledge_graph_page():
+    """Renders the Popoto.js visualization page."""
+    return render_template("knowledge_graph.html")
 
 if __name__ == "__main__":
-    logger.info("Starting Task Manager API")
+    logger.info("Starting Task Manager API with Popoto.js support.")
     app.run(host="0.0.0.0", port=5002)
