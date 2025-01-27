@@ -38,6 +38,7 @@
     "paths": {
         "uploads": "uploads/",
         "datasets": "datasets/",
+        "prologrules": "prolog_rules/",
         "logs": "logs/"
     },
     "security": {
