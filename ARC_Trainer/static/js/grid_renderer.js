@@ -1,11 +1,16 @@
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     class GridRenderer {
-        constructor(gridContainerId) {
-            this.gridContainer = document.getElementById(gridContainerId);
+        constructor(containerId) {
+            this.gridContainer = document.getElementById(containerId);
+            if (!this.gridContainer) {
+                console.error(`❌ Grid container with ID '${containerId}' not found!`);
+                return;
+            }
             this.gridData = [];
         }
 
         renderGrid(gridSize, data = null, editable = false) {
+            if (!this.gridContainer) return;
             this.gridContainer.innerHTML = "";
             this.gridContainer.style.gridTemplateColumns = `repeat(${gridSize}, 40px)`;
             this.gridData = data || Array.from({ length: gridSize }, () => Array(gridSize).fill(0));
@@ -42,7 +47,7 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById("load-task-btn").addEventListener("click", function() {
         let fileInput = document.getElementById("load-task-file");
         let file = fileInput.files[0];
-        if (!file) return UIHelpers.showAlert("Please select a task file.", "error");
+        if (!file) return alert("Please select a task file.");
 
         let reader = new FileReader();
         reader.onload = function(e) {
@@ -55,9 +60,17 @@ document.addEventListener("DOMContentLoaded", function() {
 
     document.getElementById("submit-task-btn").addEventListener("click", function() {
         let outputData = outputGrid.getGridData();
-        ARC.submitSolution(outputData)
+        fetch("/api/process-arc-task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ task: outputData })
+        })
+        .then(response => response.json())
         .then(data => {
             document.getElementById("ai-output").textContent = JSON.stringify(data.solution, null, 2);
         });
     });
+
+    if (inputGrid.gridContainer) inputGrid.renderGrid(5, null, false);
+    if (outputGrid.gridContainer) outputGrid.renderGrid(5, null, true);
 });

@@ -20,17 +20,25 @@ h1, h2 {
 nav ul {
     list-style: none;
     padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
 }
 
 nav ul li {
     display: inline;
-    margin-right: 15px;
 }
 
 nav ul li a {
     color: white;
     text-decoration: none;
     font-weight: bold;
+    transition: color 0.3s ease;
+}
+
+nav ul li a:hover {
+    color: #1abc9c;
 }
 
 main {
@@ -61,6 +69,7 @@ button {
     border-radius: 4px;
     cursor: pointer;
     font-size: 14px;
+    transition: background-color 0.3s ease;
 }
 
 button:hover {
@@ -74,10 +83,11 @@ input[type="text"], input[type="file"], textarea {
     margin-top: 5px;
     border: 1px solid #bdc3c7;
     border-radius: 4px;
+    transition: border-color 0.3s ease;
 }
 
-textarea {
-    resize: none;
+input[type="text"]:focus, textarea:focus {
+    border-color: #3498db;
 }
 
 /* Output Displays */

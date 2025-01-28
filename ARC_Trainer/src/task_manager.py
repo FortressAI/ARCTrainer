@@ -7,8 +7,13 @@ import uuid
 from src.llm_client import LLMClient
 from src.PrologRuleGenerator import PrologRuleGenerator
 from src.learning_agent import LearningAgent
+# Get the absolute path to the ARC_Trainer root directory
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Moves up one level from 'src'
 
-DATASET_DIR = "datasets/training/"  # Ensure dataset path is correct
+# Set dataset directory using absolute path
+DATASET_DIR = os.path.join(BASE_DIR, "datasets", "training")
+
+logger.info(f"📂 Using dataset directory: {DATASET_DIR}")  # Debugging log
 HUMAN_VALIDATION_QUEUE = []  # Queue for human validation tasks
 
 class TaskManager:
@@ -31,14 +36,25 @@ class TaskManager:
         files = [f.replace(".json", "") for f in os.listdir(DATASET_DIR) if f.endswith(".json")]
         return random.choice(files) if files else None
 
-    def load_arc_task(self, task_name):
+    def load_arc_task(self, task_name="default_task"):
         """Loads an ARC dataset task from the datasets directory."""
         task_path = os.path.join(DATASET_DIR, f"{task_name}.json")
+        
+        # 🚀 Debugging output
+        logger.info(f"🔍 Checking ARC task file path: {task_path}")
+
         if not os.path.exists(task_path):
+            logger.error(f"❌ Task file does not exist: {task_path}")
             return {"error": f"Task '{task_name}' not found in dataset"}, 404
-        with open(task_path, "r") as file:
-            task_data = json.load(file)
-        return task_data, 200
+
+        try:
+            with open(task_path, "r") as file:
+                task_data = json.load(file)
+                logger.info(f"✅ Successfully loaded task: {task_name}")
+                return task_data, 200
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ JSON decoding error in {task_name}.json: {str(e)}")
+            return {"error": f"Invalid JSON format in task '{task_name}'"}, 500
 
     # -------------------- KNOWLEDGE GRAPH INTEGRATION --------------------
 

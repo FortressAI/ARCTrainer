@@ -1,4 +1,6 @@
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
+    console.log("📡 Fetching ARC task from API...");
+
     class ARCGrid {
         constructor(gridContainerId) {
             this.gridContainer = document.getElementById(gridContainerId);
@@ -39,25 +41,48 @@ document.addEventListener("DOMContentLoaded", function() {
     const inputGrid = new ARCGrid("input-grid-container");
     const outputGrid = new ARCGrid("output-grid-container");
 
-    document.getElementById("load-task-btn").addEventListener("click", function() {
-        let fileInput = document.getElementById("load-task-file");
-        let file = fileInput.files[0];
-        if (!file) return UIHelpers.showAlert("Please select a task file.", "error");
+    function loadRandomTask() {
+        fetch("/api/load-random-arc-task")
+            .then(response => response.json())
+            .then(taskData => {
+                console.log("Loaded task:", taskData);
+                inputGrid.renderGrid(taskData.train[0].input.length, taskData.train[0].input, false);
+                outputGrid.renderGrid(taskData.train[0].input.length, null, true);
+            })
+            .catch(error => console.error("Error loading ARC task:", error));
+    }
 
-        let reader = new FileReader();
-        reader.onload = function(e) {
-            let taskData = JSON.parse(e.target.result);
-            inputGrid.renderGrid(taskData.train[0].input.length, taskData.train[0].input);
-            outputGrid.renderGrid(taskData.train[0].input.length, null, true);
-        };
-        reader.readAsText(file);
-    });
-
-    document.getElementById("submit-task-btn").addEventListener("click", function() {
+    function submitTask() {
         let outputData = outputGrid.getGridData();
-        ARC.submitSolution(outputData)
+        fetch("/api/process-arc-task", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ task: outputData })
+        })
+        .then(response => response.json())
         .then(data => {
             document.getElementById("ai-output").textContent = JSON.stringify(data.solution, null, 2);
-        });
-    });
+            console.log("Task completed:", data);
+            setTimeout(loadRandomTask, 2000); // Auto-load next task after 2 sec delay
+        })
+        .catch(error => console.error("Error submitting ARC task:", error));
+    }
+
+    const loadTaskBtn = document.getElementById("load-task-btn");
+    const submitTaskBtn = document.getElementById("submit-task-btn");
+
+    if (loadTaskBtn) {
+        loadTaskBtn.addEventListener("click", loadRandomTask);
+    } else {
+        console.error("❌ load-task-btn element is missing!");
+    }
+
+    if (submitTaskBtn) {
+        submitTaskBtn.addEventListener("click", submitTask);
+    } else {
+        console.error("❌ submit-task-btn element is missing!");
+    }
+
+    // Auto-load the first task on page load
+    loadRandomTask();
 });

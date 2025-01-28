@@ -36,10 +36,10 @@
         "human_sign_off_required": true
     },
     "paths": {
-        "uploads": "uploads/",
-        "datasets": "datasets/",
-        "prologrules": "prolog_rules/",
-        "logs": "logs/"
+        "uploads": "/ARC_Trainer/uploads/",
+        "datasets": "/ARC_Trainer/datasets/training",
+        "prologrules": "/ARC_Trainer/prolog_rules/",
+        "logs": "/ARC_Trainer/logs/"
     },
     "security": {
         "enable_authentication": false,
