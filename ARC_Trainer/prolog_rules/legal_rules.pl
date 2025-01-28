@@ -1,5 +1,14 @@
+% legal_rules.pl
 % Domain-specific rules for the "Legal" domain
 % Now includes human-readable mappings (Controlled Natural Language - CNL)
+
+% --- Debugging & Configuration ---
+:- discontiguous cnl_to_prolog/3.
+:- discontiguous cnl_to_prolog/4.
+:- discontiguous prolog_to_cnl/3.
+:- discontiguous prolog_to_cnl/4.
+:- multifile cnl_to_prolog/3.
+:- multifile prolog_to_cnl/3.
 
 % --- Main Entry Point ---
 
@@ -55,6 +64,17 @@ execute_legal_intent(ask_question, Topic) :-
 execute_legal_intent(get_information, Topic) :-
     format("Here is relevant legal information about ~w.", [Topic]).
 
+% --- Learning System for Legal Queries ---
+% Allows Prolog to store and recall previously answered legal queries.
+
+learn_legal_query(Question, Answer) :-
+    assertz(stored_legal_query(Question, Answer)),
+    format("Legal query stored: ~w -> ~w.", [Question, Answer]).
+
+recall_legal_query(Question, Answer) :-
+    stored_legal_query(Question, Answer),
+    format("Previously answered: ~w -> ~w.", [Question, Answer]).
+
 % --- Helper Logic ---
 
 % Extracts topic and intent from a legal query.
@@ -75,19 +95,28 @@ legal_topic(Topic) :-
 % --- Controlled Natural Language (CNL) Mappings ---
 
 % Converts a human-readable statement into a Prolog rule.
-cnl_to_prolog("A contract is a legally binding agreement between two or more parties.", contract(X, Y) :- legally_binding_agreement(X, Y)).
-cnl_to_prolog("Intellectual property refers to creations of the mind such as inventions, literary works, and artistic designs.", intellectual_property(X) :- creation_of_mind(X)).
-cnl_to_prolog("A crime is an action that violates a law and is punishable by the state.", crime(X) :- violates_law(X), punishable_by_state(X)).
-cnl_to_prolog("Civil rights protect individuals from discrimination and guarantee equal treatment under the law.", civil_rights(X) :- protects_individuals(X), guarantees_equality(X)).
+cnl_to_prolog("A contract is a legally binding agreement between two or more parties.", 
+              contract(X, Y) :- legally_binding_agreement(X, Y)).
+cnl_to_prolog("Intellectual property refers to creations of the mind such as inventions, literary works, and artistic designs.", 
+              intellectual_property(X) :- creation_of_mind(X)).
+cnl_to_prolog("A crime is an action that violates a law and is punishable by the state.", 
+              crime(X) :- violates_law(X), punishable_by_state(X)).
+cnl_to_prolog("Civil rights protect individuals from discrimination and guarantee equal treatment under the law.", 
+              civil_rights(X) :- protects_individuals(X), guarantees_equality(X)).
 
 % Converts a Prolog rule into a human-readable statement.
-prolog_to_cnl(contract(X, Y) :- legally_binding_agreement(X, Y), "A contract is a legally binding agreement between two or more parties.").
-prolog_to_cnl(intellectual_property(X) :- creation_of_mind(X), "Intellectual property refers to creations of the mind such as inventions, literary works, and artistic designs.").
-prolog_to_cnl(crime(X) :- violates_law(X), punishable_by_state(X), "A crime is an action that violates a law and is punishable by the state.").
-prolog_to_cnl(civil_rights(X) :- protects_individuals(X), guarantees_equality(X), "Civil rights protect individuals from discrimination and guarantee equal treatment under the law.").
+prolog_to_cnl(contract(X, Y) :- legally_binding_agreement(X, Y), 
+              "A contract is a legally binding agreement between two or more parties.").
+prolog_to_cnl(intellectual_property(X) :- creation_of_mind(X), 
+              "Intellectual property refers to creations of the mind such as inventions, literary works, and artistic designs.").
+prolog_to_cnl(crime(X) :- violates_law(X), punishable_by_state(X), 
+              "A crime is an action that violates a law and is punishable by the state.").
+prolog_to_cnl(civil_rights(X) :- protects_individuals(X), guarantees_equality(X), 
+              "Civil rights protect individuals from discrimination and guarantee equal treatment under the law.").
 
 % --- Example Usage ---
 
-% legal_rules("What is the legal definition of negligence?", intent_data{primary_intent: get_information}).
+% learn_legal_query("What is the legal definition of negligence?", "Negligence is the failure to take reasonable care to avoid harm to others.").
+% recall_legal_query("What is the legal definition of negligence?", Answer). -> Previously answered: Negligence -> failure to take reasonable care.
 % legal_rules("Can I sue someone for breach of contract?", intent_data{primary_intent: ask_question}).
 % legal_rules("What are my civil rights regarding free speech?", intent_data{primary_intent: get_information}).

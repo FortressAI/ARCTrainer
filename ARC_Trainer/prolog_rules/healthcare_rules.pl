@@ -1,5 +1,14 @@
+% healthcare_rules.pl
 % Domain-specific rules for the "Healthcare" domain
 % Now includes human-readable mappings (Controlled Natural Language - CNL)
+
+% --- Debugging & Configuration ---
+:- discontiguous cnl_to_prolog/3.
+:- discontiguous cnl_to_prolog/4.
+:- discontiguous prolog_to_cnl/3.
+:- discontiguous prolog_to_cnl/4.
+:- multifile cnl_to_prolog/3.
+:- multifile prolog_to_cnl/3.
 
 % --- Main Entry Point ---
 
@@ -55,6 +64,17 @@ execute_healthcare_intent(seek_advice, Topic) :-
 execute_healthcare_intent(get_information, Topic) :-
     format("Here is general information about ~w. Note: This is not a substitute for medical advice.", [Topic]).
 
+% --- Learning System for Healthcare Queries ---
+% Allows Prolog to store and recall previously answered healthcare queries.
+
+learn_healthcare_query(Question, Answer) :-
+    assertz(stored_healthcare_query(Question, Answer)),
+    format("Healthcare query stored: ~w -> ~w.", [Question, Answer]).
+
+recall_healthcare_query(Question, Answer) :-
+    stored_healthcare_query(Question, Answer),
+    format("Previously answered: ~w -> ~w.", [Question, Answer]).
+
 % --- Helper Logic ---
 
 % Extracts intent and topic from a healthcare query.
@@ -75,19 +95,28 @@ healthcare_topic(Topic) :-
 % --- Controlled Natural Language (CNL) Mappings ---
 
 % Converts a human-readable statement into a Prolog rule.
-cnl_to_prolog("Symptoms are the observable effects of a disease.", symptom(X) :- disease(Y), causes(Y, X)).
-cnl_to_prolog("A treatment is a medical intervention aimed at curing or managing a disease.", treatment(T) :- disease(D), manages(T, D)).
-cnl_to_prolog("A balanced diet is essential for maintaining good health.", balanced_diet(healthy)).
-cnl_to_prolog("Regular exercise helps prevent many chronic conditions.", exercise(prevent_chronic_conditions)).
+cnl_to_prolog("Symptoms are the observable effects of a disease.", 
+              symptom(X) :- disease(Y), causes(Y, X)).
+cnl_to_prolog("A treatment is a medical intervention aimed at curing or managing a disease.", 
+              treatment(T) :- disease(D), manages(T, D)).
+cnl_to_prolog("A balanced diet is essential for maintaining good health.", 
+              balanced_diet(healthy)).
+cnl_to_prolog("Regular exercise helps prevent many chronic conditions.", 
+              exercise(prevent_chronic_conditions)).
 
 % Converts a Prolog rule into a human-readable statement.
-prolog_to_cnl(symptom(X) :- disease(Y), causes(Y, X), "Symptoms are the observable effects of a disease.").
-prolog_to_cnl(treatment(T) :- disease(D), manages(T, D), "A treatment is a medical intervention aimed at curing or managing a disease.").
-prolog_to_cnl(balanced_diet(healthy), "A balanced diet is essential for maintaining good health.").
-prolog_to_cnl(exercise(prevent_chronic_conditions), "Regular exercise helps prevent many chronic conditions.").
+prolog_to_cnl(symptom(X) :- disease(Y), causes(Y, X), 
+              "Symptoms are the observable effects of a disease.").
+prolog_to_cnl(treatment(T) :- disease(D), manages(T, D), 
+              "A treatment is a medical intervention aimed at curing or managing a disease.").
+prolog_to_cnl(balanced_diet(healthy), 
+              "A balanced diet is essential for maintaining good health.").
+prolog_to_cnl(exercise(prevent_chronic_conditions), 
+              "Regular exercise helps prevent many chronic conditions.").
 
 % --- Example Usage ---
 
-% healthcare_rules("What are the symptoms of the flu?", intent_data{primary_intent: get_information}).
+% learn_healthcare_query("What are the symptoms of the flu?", "Common symptoms include fever, cough, and fatigue.").
+% recall_healthcare_query("What are the symptoms of the flu?", Answer). -> Previously answered: Flu symptoms -> fever, cough, fatigue.
 % healthcare_rules("Can I share patient information with their family?", intent_data{primary_intent: seek_advice}).
 % healthcare_rules("What is the best exercise for weight loss?", intent_data{primary_intent: get_information}).

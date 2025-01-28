@@ -1,5 +1,14 @@
+% warfare_rules.pl
 % Domain-specific rules for the "Warfare" domain
 % Now includes human-readable mappings (Controlled Natural Language - CNL)
+
+% --- Debugging & Configuration ---
+:- discontiguous cnl_to_prolog/3.
+:- discontiguous cnl_to_prolog/4.
+:- discontiguous prolog_to_cnl/3.
+:- discontiguous prolog_to_cnl/4.
+:- multifile cnl_to_prolog/3.
+:- multifile prolog_to_cnl/3.
 
 % --- Core Warfare Concepts ---
 
@@ -21,7 +30,7 @@ military_unit(special_forces) :- specializes(covert_operations), operates(behind
 strategy(offensive) :- seeks(territorial_gain), applies(shock_and_awe).
 strategy(defensive) :- seeks(protection), applies(fortifications).
 strategy(deterrence) :- prevents(conflict), relies_on(show_of_force).
-strategy(psychological) :- targets(enemy_morale), involves(propoganda).
+strategy(psychological) :- targets(enemy_morale), involves(propaganda).
 
 % Defines key elements of war.
 element_of_war(intelligence) :- involves(spying), gathers(secret_information).
@@ -84,6 +93,17 @@ execute_warfare_intent(get_information, Topic) :-
 execute_warfare_intent(compare_strategies, Strategy1, Strategy2) :-
     format("Comparing ~w with ~w in terms of effectiveness and application.", [Strategy1, Strategy2]).
 
+% --- Learning System for Warfare Queries ---
+% Allows Prolog to store and recall previously answered warfare-related queries.
+
+learn_warfare_query(Question, Answer) :-
+    assertz(stored_warfare_query(Question, Answer)),
+    format("Warfare query stored: ~w -> ~w.", [Question, Answer]).
+
+recall_warfare_query(Question, Answer) :-
+    stored_warfare_query(Question, Answer),
+    format("Previously answered: ~w -> ~w.", [Question, Answer]).
+
 % --- Helper Logic ---
 
 % Extracts warfare topics from queries.
@@ -104,19 +124,28 @@ warfare_topic(Topic) :-
 % --- Controlled Natural Language (CNL) Mappings ---
 
 % Converts human-readable statements into Prolog rules.
-cnl_to_prolog("Conventional warfare involves organized military forces and standard weapons.", warfare(conventional) :- involves(organized_military), uses(standard_weapons)).
-cnl_to_prolog("Cyber warfare targets digital infrastructure and involves cyber attacks.", warfare(cyber) :- targets(digital_infrastructure), involves(cyber_attacks)).
-cnl_to_prolog("Infantry specializes in ground combat and uses small arms.", military_unit(infantry) :- specializes(ground_combat), uses(small_arms)).
-cnl_to_prolog("The Geneva Convention protects civilians and regulates conduct in war.", treaty(geneva_convention) :- protects(civilians), regulates(war_conduct)).
+cnl_to_prolog("Conventional warfare involves organized military forces and standard weapons.", 
+              warfare(conventional) :- involves(organized_military), uses(standard_weapons)).
+cnl_to_prolog("Cyber warfare targets digital infrastructure and involves cyber attacks.", 
+              warfare(cyber) :- targets(digital_infrastructure), involves(cyber_attacks)).
+cnl_to_prolog("Infantry specializes in ground combat and uses small arms.", 
+              military_unit(infantry) :- specializes(ground_combat), uses(small_arms)).
+cnl_to_prolog("The Geneva Convention protects civilians and regulates conduct in war.", 
+              treaty(geneva_convention) :- protects(civilians), regulates(war_conduct)).
 
 % Converts Prolog rules into human-readable statements.
-prolog_to_cnl(warfare(conventional) :- involves(organized_military), uses(standard_weapons), "Conventional warfare involves organized military forces and standard weapons.").
-prolog_to_cnl(warfare(cyber) :- targets(digital_infrastructure), involves(cyber_attacks), "Cyber warfare targets digital infrastructure and involves cyber attacks.").
-prolog_to_cnl(military_unit(infantry) :- specializes(ground_combat), uses(small_arms), "Infantry specializes in ground combat and uses small arms.").
-prolog_to_cnl(treaty(geneva_convention) :- protects(civilians), regulates(war_conduct), "The Geneva Convention protects civilians and regulates conduct in war.").
+prolog_to_cnl(warfare(conventional) :- involves(organized_military), uses(standard_weapons), 
+              "Conventional warfare involves organized military forces and standard weapons.").
+prolog_to_cnl(warfare(cyber) :- targets(digital_infrastructure), involves(cyber_attacks), 
+              "Cyber warfare targets digital infrastructure and involves cyber attacks.").
+prolog_to_cnl(military_unit(infantry) :- specializes(ground_combat), uses(small_arms), 
+              "Infantry specializes in ground combat and uses small arms.").
+prolog_to_cnl(treaty(geneva_convention) :- protects(civilians), regulates(war_conduct), 
+              "The Geneva Convention protects civilians and regulates conduct in war.").
 
 % --- Example Usage ---
 
-% warfare_rules("What is nuclear warfare?", intent_data{primary_intent: get_information}).
+% learn_warfare_query("What is nuclear warfare?", "Nuclear warfare involves the use of nuclear weapons with global consequences.").
+% recall_warfare_query("What is nuclear warfare?", Answer). -> Previously answered: Nuclear warfare -> involves nuclear weapons.
 % warfare_rules("Compare offensive and defensive military strategies.", intent_data{primary_intent: compare_strategies}).
 % warfare_rules("What is the Geneva Convention?", intent_data{primary_intent: get_information}).

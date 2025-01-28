@@ -1,5 +1,14 @@
+% number_theory_rules.pl
 % Domain-specific rules for IMO Number Theory problems
 % Now includes human-readable mappings (Controlled Natural Language - CNL)
+
+% --- Debugging & Configuration ---
+:- discontiguous cnl_to_prolog/3.
+:- discontiguous cnl_to_prolog/4.
+:- discontiguous prolog_to_cnl/3.
+:- discontiguous prolog_to_cnl/4.
+:- multifile cnl_to_prolog/3.
+:- multifile prolog_to_cnl/3.
 
 % --- Core Number-Theoretic Principles ---
 
@@ -90,6 +99,17 @@ execute_number_theory_action("lcm", Data) :-
     lcm(X, Y, Lcm),
     format("The least common multiple of ~w and ~w is ~w.", [X, Y, Lcm]).
 
+% --- Learning System for Number Theory Queries ---
+% Allows Prolog to store and recall previously solved number theory problems.
+
+learn_number_theory_query(Property, Number, Result) :-
+    assertz(stored_number_theory_query(Property, Number, Result)),
+    format("Number theory query stored: ~w(~w) -> ~w.", [Property, Number, Result]).
+
+recall_number_theory_query(Property, Number, Result) :-
+    stored_number_theory_query(Property, Number, Result),
+    format("Previously solved: ~w(~w) -> ~w.", [Property, Number, Result]).
+
 % --- Helper Logic ---
 
 % Extracts the number and property from a query.
@@ -113,17 +133,25 @@ check_number_theory_relevance(Query) :-
 % --- Controlled Natural Language (CNL) Mappings ---
 
 % Converts a human-readable statement into a Prolog rule.
-cnl_to_prolog("A prime number is a number greater than 1 that has no divisors other than 1 and itself.", prime(P) :- P > 3, P mod 2 =\= 0, \+ has_divisor(P, 3)).
-cnl_to_prolog("The greatest common divisor of two numbers X and Y is the largest integer that divides both X and Y.", gcd(X, Y, Gcd) :- Y > 0, R is X mod Y, gcd(Y, R, Gcd)).
-cnl_to_prolog("The least common multiple of two numbers X and Y is the smallest number that is a multiple of both X and Y.", lcm(X, Y, Lcm) :- gcd(X, Y, Gcd), Lcm is X * Y // Gcd).
+cnl_to_prolog("A prime number is a number greater than 1 that has no divisors other than 1 and itself.", 
+              prime(P) :- P > 3, P mod 2 =\= 0, \+ has_divisor(P, 3)).
+cnl_to_prolog("The greatest common divisor of two numbers X and Y is the largest integer that divides both X and Y.", 
+              gcd(X, Y, Gcd) :- Y > 0, R is X mod Y, gcd(Y, R, Gcd)).
+cnl_to_prolog("The least common multiple of two numbers X and Y is the smallest number that is a multiple of both X and Y.", 
+              lcm(X, Y, Lcm) :- gcd(X, Y, Gcd), Lcm is X * Y // Gcd).
 
 % Converts a Prolog rule into a human-readable statement.
-prolog_to_cnl(prime(P) :- P > 3, P mod 2 =\= 0, \+ has_divisor(P, 3), "A prime number is a number greater than 1 that has no divisors other than 1 and itself.").
-prolog_to_cnl(gcd(X, Y, Gcd) :- Y > 0, R is X mod Y, gcd(Y, R, Gcd), "The greatest common divisor of two numbers X and Y is the largest integer that divides both X and Y.").
-prolog_to_cnl(lcm(X, Y, Lcm) :- gcd(X, Y, Gcd), Lcm is X * Y // Gcd, "The least common multiple of two numbers X and Y is the smallest number that is a multiple of both X and Y.").
+prolog_to_cnl(prime(P) :- P > 3, P mod 2 =\= 0, \+ has_divisor(P, 3), 
+              "A prime number is a number greater than 1 that has no divisors other than 1 and itself.").
+prolog_to_cnl(gcd(X, Y, Gcd) :- Y > 0, R is X mod Y, gcd(Y, R, Gcd), 
+              "The greatest common divisor of two numbers X and Y is the largest integer that divides both X and Y.").
+prolog_to_cnl(lcm(X, Y, Lcm) :- gcd(X, Y, Gcd), Lcm is X * Y // Gcd, 
+              "The least common multiple of two numbers X and Y is the smallest number that is a multiple of both X and Y.").
 
 % --- Example Usage ---
 
+% learn_number_theory_query("prime", 7, true).
+% recall_number_theory_query("prime", 7, Result). -> Previously solved: prime(7) -> true.
 % number_theory_rules("Is 7 a prime number?", intent_data{primary_intent: ask_question}).
 % number_theory_rules("What is the gcd of 54 and 24?", intent_data{primary_intent: get_information}).
 % number_theory_rules("Find the lcm of 12 and 15.", intent_data{primary_intent: ask_question}).

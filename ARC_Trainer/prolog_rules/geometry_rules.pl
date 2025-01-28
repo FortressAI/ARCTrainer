@@ -1,5 +1,14 @@
+% geometry_rules.pl
 % Domain-specific rules for geometry reasoning
 % Now includes human-readable mappings (Controlled Natural Language - CNL)
+
+% --- Debugging & Configuration ---
+:- discontiguous cnl_to_prolog/3.
+:- discontiguous cnl_to_prolog/4.
+:- discontiguous prolog_to_cnl/3.
+:- discontiguous prolog_to_cnl/4.
+:- multifile cnl_to_prolog/3.
+:- multifile prolog_to_cnl/3.
 
 % --- Geometric Knowledge Representation ---
 
@@ -67,6 +76,17 @@ geometric_property(Shape, Property) :-
     shape(Shape, _, Properties),
     member(Property, Properties).
 
+% --- Learning System for Geometry Queries ---
+% Allows Prolog to store and recall previously solved geometric properties.
+
+learn_geometry_fact(Shape, Property) :-
+    assertz(stored_geometry_fact(Shape, Property)),
+    format("Geometry fact stored: ~w has property ~w.", [Shape, Property]).
+
+recall_geometry_fact(Shape, Property) :-
+    stored_geometry_fact(Shape, Property),
+    format("Previously stored fact: ~w has property ~w.", [Shape, Property]).
+
 % --- Helper Logic ---
 
 % Extracts shape and property from a query using language games.
@@ -84,17 +104,29 @@ check_geometry_relevance(Query) :-
 % --- Controlled Natural Language (CNL) Mappings ---
 
 % Converts a human-readable statement into a Prolog rule.
-cnl_to_prolog("A square has four equal sides and four right angles.", shape(square, quadrilateral, [four_equal_sides, four_right_angles])).
-cnl_to_prolog("A right triangle has one right angle.", shape(right_triangle, triangle, [one_right_angle])).
-cnl_to_prolog("A circle has a constant radius.", shape(circle, conic, [constant_radius])).
+cnl_to_prolog("A square has four equal sides and four right angles.", 
+              shape(square, quadrilateral, [four_equal_sides, four_right_angles])).
+
+cnl_to_prolog("A right triangle has one right angle.", 
+              shape(right_triangle, triangle, [one_right_angle])).
+
+cnl_to_prolog("A circle has a constant radius.", 
+              shape(circle, conic, [constant_radius])).
 
 % Converts a Prolog rule into a human-readable statement.
-prolog_to_cnl(shape(square, quadrilateral, [four_equal_sides, four_right_angles]), "A square has four equal sides and four right angles.").
-prolog_to_cnl(shape(right_triangle, triangle, [one_right_angle]), "A right triangle has one right angle.").
-prolog_to_cnl(shape(circle, conic, [constant_radius]), "A circle has a constant radius.").
+prolog_to_cnl(shape(square, quadrilateral, [four_equal_sides, four_right_angles]), 
+              "A square has four equal sides and four right angles.").
+
+prolog_to_cnl(shape(right_triangle, triangle, [one_right_angle]), 
+              "A right triangle has one right angle.").
+
+prolog_to_cnl(shape(circle, conic, [constant_radius]), 
+              "A circle has a constant radius.").
 
 % --- Example Usage ---
 
+% learn_geometry_fact(square, four_equal_sides).
+% recall_geometry_fact(square, Property). -> Previously stored fact: square has property four_equal_sides.
 % geometry_rules("Does a square have four equal sides?", intent_data{primary_intent: ask_question}).
 % geometry_rules("What are the properties of a right triangle?", intent_data{primary_intent: get_information}).
 % geometry_rules("Is a circle defined by having a constant radius?", intent_data{primary_intent: ask_question}).

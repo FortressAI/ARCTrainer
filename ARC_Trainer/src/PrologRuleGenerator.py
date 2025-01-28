@@ -1,24 +1,33 @@
 import pyswip
+import os
 from loguru import logger
+from pyswip import Prolog  # Import Prolog from PySWIP
 from src.llm_client import LLMClient
 
 class PrologRuleGenerator:
-    def __init__(self, prolog_path="/prolog_rules/prolog_engine.pl"):
-        """
-        Initializes the Prolog Rule Generator for ontology validation.
+    def __init__(self, prolog_path=None):
+        self.prolog = Prolog()
 
-        Args:
-            prolog_path (str): Path to the Prolog rule file.
-        """
-        self.prolog = pyswip.Prolog()
-        self.llm_client = LLMClient()
+        # Use the correct Prolog file path
+        if prolog_path is None:
+            prolog_path = "/Users/richardgillespie/Documents/ARC_Trainer/ARC_Trainer/prolog_rules/prolog_engine.pl"
+
+        # Verify file exists
+        if not os.path.exists(prolog_path):
+            logger.error(f"❌ Prolog file does NOT exist: {prolog_path}")
+            raise FileNotFoundError(f"Prolog file does not exist: {prolog_path}")
 
         try:
+            logger.info(f"📌 Loading Prolog file: {prolog_path}")
             self.prolog.consult(prolog_path)
-            logger.info(f"Prolog engine initialized with rules from {prolog_path}.")
+            logger.info("✅ Prolog engine initialized successfully.")
+        except StopIteration:
+            logger.error("⚠️ StopIteration Error: No response from Prolog. Try restarting Python.")
+            raise RuntimeError("PySWIP encountered a StopIteration error.")
         except Exception as e:
-            logger.error(f"Error loading Prolog file: {e}")
-
+            logger.error(f"❌ Other Error: {e}")
+            raise e
+                          
     def generate_prolog_rule(self, cnl_rule):
         """
         Converts a Controlled Natural Language (CNL) rule into Prolog.

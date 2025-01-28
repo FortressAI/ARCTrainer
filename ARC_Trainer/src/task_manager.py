@@ -1,7 +1,6 @@
 import os
 import json
 import random
-from flask import Flask, request, jsonify, render_template
 from neo4j import GraphDatabase
 from loguru import logger
 import uuid
@@ -9,22 +8,23 @@ from src.llm_client import LLMClient
 from src.PrologRuleGenerator import PrologRuleGenerator
 from src.learning_agent import LearningAgent
 
-app = Flask(__name__)
-
 DATASET_DIR = "datasets/training/"  # Ensure dataset path is correct
 HUMAN_VALIDATION_QUEUE = []  # Queue for human validation tasks
 
 class TaskManager:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
+        """Initializes the Task Manager with access to Neo4j, LLM, and Prolog validation."""
         self.driver = GraphDatabase.driver(uri, auth=(user, password))
         self.llm_client = LLMClient()
         self.prolog_generator = PrologRuleGenerator()
         self.learning_agent = LearningAgent()
-        logger.info("TaskManager initialized with multi-domain ontology and ARC support.")
+        logger.info("✅ TaskManager initialized with multi-domain ontology and ARC support.")
 
     def close(self):
         """Closes the connection to the Neo4j database."""
         self.driver.close()
+
+    # -------------------- ARC TASK HANDLING --------------------
 
     def get_random_task(self):
         """Selects a random ARC task file from the dataset directory."""
@@ -39,6 +39,14 @@ class TaskManager:
         with open(task_path, "r") as file:
             task_data = json.load(file)
         return task_data, 200
+
+    # -------------------- KNOWLEDGE GRAPH INTEGRATION --------------------
+
+    def fetch_knowledge_graph(self):
+        """Fetches all stored AI task reasoning and Prolog rules from the Knowledge Graph."""
+        with self.driver.session() as session:
+            result = session.run("MATCH (t:Task) RETURN t.name AS name, t.solution AS solution, t.success AS success")
+            return [record.data() for record in result]
 
     def check_knowledge_graph(self, task_name):
         """Checks if a solution already exists in the Knowledge Graph."""
@@ -76,12 +84,14 @@ class TaskManager:
                 task_name=task_name, solution=json.dumps(solution), prolog_rule=prolog_rule, success=success
             )
 
-    def attempt_solution(self, task_data, user_solution):
+    # -------------------- ARC SOLUTION PROCESSING --------------------
+
+    def attempt_solution(self, task_data, user_solution=None):
         """Uses AI to solve the ARC task with structured reasoning, checking KG first."""
         history = self.check_knowledge_graph(task_data["name"])
         if history and history["success"]:
             return history["solution"], True
-        
+
         prompt = f"""
         You are an advanced AI trained in ARC pattern recognition. Given the following task, generate a logically structured solution:
         Task Data: {json.dumps(task_data, indent=2)}
@@ -92,27 +102,11 @@ class TaskManager:
             solution = json.loads(ai_response.get("response", "[]"))
         except json.JSONDecodeError:
             solution = []  # Fallback to empty if LLM output is not structured correctly
-        
+
         prolog_rule = self.convert_cnl_to_prolog(json.dumps(solution))
         if not self.validate_solution_with_prolog(prolog_rule):
             self.log_counterexample(task_data["name"], solution)
             return solution, False
-        
+
+        self.log_to_knowledge_graph(task_data["name"], solution, prolog_rule, True)
         return solution, True
-
-@app.route("/api/knowledge-graph", methods=["GET"])
-def get_knowledge_graph():
-    """Fetches stored AI task reasoning and Prolog rules from the Knowledge Graph."""
-    task_manager = TaskManager()
-    graph_data = task_manager.fetch_knowledge_graph()
-    task_manager.close()
-    return jsonify(graph_data)
-
-@app.route("/knowledge-graph")
-def knowledge_graph_page():
-    """Renders the Popoto.js visualization page."""
-    return render_template("knowledge_graph.html")
-
-if __name__ == "__main__":
-    logger.info("Starting Task Manager API with Popoto.js support.")
-    app.run(host="0.0.0.0", port=5002)

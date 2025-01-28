@@ -1,21 +1,30 @@
 % prolog_engine.pl
+% This file loads all domain-specific rules for the ARC Trainer system.
 
-% This file is used to load all the necessary prolog rules for the ARC Trainer system.
+% Debug: Notify when Prolog starts loading rules
+:- format("📌 [Prolog] Starting rule loading...\n").
 
-% Load domain-specific rules
-consult('algebra_rules.pl').
-consult('aristotle_logic.pl').
-consult('combinatorics_rules.pl').
-consult('education_rules.pl').
-consult('geometry_rules.pl').
-consult('healthcare_rules.pl').
-consult('legal_rules.pl').
-consult('number_theory_rules.pl').
-consult('warfare_rules.pl').
+% Load domain-specific rules in order
+load_rule(File) :-
+    (   consult(File)
+    ->  format("✅ [Prolog] Successfully loaded: ~w\n", [File])
+    ;   format("❌ [Prolog] Failed to load: ~w\n", [File])
+    ).
 
-% You can add more consult statements here for additional .pl files
+% Load all rules with debug tracking
+:- load_rule('algebra_rules.pl').
+:- load_rule('aristotle_logic.pl').
+:- load_rule('combinatorics_rules.pl').
+:- load_rule('education_rules.pl').
+:- load_rule('geometry_rules.pl').
+:- load_rule('healthcare_rules.pl').
+:- load_rule('legal_rules.pl').
+:- load_rule('number_theory_rules.pl').
+:- load_rule('warfare_rules.pl').
 
-% You can also add rules directly to this file if you want
-
-% Example of a rule
-% example_rule(X) :- write('This is an example rule: '), write(X).
+% Dependency Checker: Ensures that necessary predicates exist before execution
+check_dependency(Rule) :-
+    (   current_predicate(Rule/_)
+    ->  format("✅ [Prolog] Dependency exists: ~w\n", [Rule])
+    ;   format("⚠️ [Prolog] Warning: Missing required dependency ~w\n", [Rule])
+    ).

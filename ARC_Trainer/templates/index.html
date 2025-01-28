@@ -13,8 +13,8 @@
     
     <div id="mode-selection">
         <h2>Select a Mode</h2>
-        <button id="arc-mode-btn" onclick="window.location.href='home.html'">Go to ARC Mode Challenge</button>
-        <button id="last-human-mode-btn" onclick="window.location.href='last_human.html'">Go to Last Human Mode</button>
+        <button id="arc-mode-btn" onclick="window.location.href='{{ url_for("arc_page") }}'">Go to ARC Mode Challenge</button>
+        <button id="last-human-mode-btn" onclick="window.location.href='{{ url_for("lhe_page") }}'">Go to Last Human Mode</button>
     </div>
 </body>
 </html>
