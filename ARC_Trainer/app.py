@@ -117,6 +117,16 @@ def process_lhe_task():
     task_manager.log_to_knowledge_graph(task_name, solution, success)
     return jsonify({"task": task_name, "solution": solution, "success": success})
 
+# -------------------- ✅ Debate AI--------------------
+
+@app.route("/api/get-debate-history", methods=["GET"])
+def get_debate_history():
+    return jsonify({"debate_log": ["Example debate entry 1", "Example debate entry 2"]})
+
+@app.route("/api/human-validation-queue", methods=["GET"])
+def get_human_validation_queue():
+    return jsonify({"queue": ["Validation task 1", "Validation task 2"]})
+
 # -------------------- ✅ START FLASK SERVER --------------------
 
 if __name__ == "__main__":

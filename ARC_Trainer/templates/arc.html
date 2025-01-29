@@ -1,49 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARC Trainer - AI Debate & Reasoning Validation</title>
-    <link rel="stylesheet" href="static/css/common.css">
-    <link rel="stylesheet" href="static/css/testing_interface.css">
-</head>
-<body>
-    <header>
-        <h1>ARC Trainer - AI Debate & Reasoning Validation</h1>
-    </header>
-    
-    <section id="controls">
-        <button id="load-task-btn" class="btn-primary">Load Task</button>
-        <button id="submit-task-btn" class="btn-success">Submit Task</button>
-        <input type="file" id="load-task-file" accept=".json">
-    </section>
-    
-    <section id="training-examples-container">
-        <h2>Training Examples</h2>
-        <div id="train-examples" class="train-examples"></div>
-    </section>
-    
-    <section id="test-example-container">
-        <h2>Test Grid - Solve the Challenge</h2>
-        <div id="test-grid-container" class="grid-container"></div>
-    </section>
-    
-    <section id="ai-output-container">
-        <h2>AI Output</h2>
-        <pre id="ai-output"></pre>
-    </section>
-    
-    <section id="debate-log-container">
-        <h2>AI Debate & Reasoning</h2>
-        <button id="start-debate-btn" class="btn-highlight">Start AI Debate</button>
-        <button id="approve-btn" class="btn-success">Approve Solution</button>
-        <button id="reject-btn" class="btn-danger">Reject Solution</button>
-        <div id="debate-log" class="log-container"></div>
-    </section>
-    
-    <script src="static/js/grid_renderer.js"></script>
-    <script src="static/js/arc_grid.js"></script>
-    <script src="static/js/testing_interface.js"></script>
-    <script src="static/js/home.js"></script>
-</body>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>ARC Testing Interface</title>
+
+        <!-- Stylesheets -->
+        <link rel="stylesheet" type="text/css" href="static/css/common.css">
+        <link rel="stylesheet" type="text/css" href="static/css/testing_interface.css">
+
+        <!-- Google Fonts -->
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans&display=swap" rel="stylesheet">
+    </head>
+    <body>
+        <div id="workspace">
+            <header>
+                <h1>ARC Challenge Testing Interface</h1>
+                <button id="load-task-btn" class="btn-primary">Load Random ARC Task</button>
+                <button id="submit-task-btn" class="btn-success">Submit Solution</button>
+                <button id="next-test-btn" class="btn-primary">Next Test</button>
+            </header>
+
+            <section id="training-examples">
+                <h2>Training Examples</h2>
+                <div id="train-examples">
+                    <!-- Training example grid pairs will be dynamically inserted here -->
+                </div>
+            </section>
+
+            <section id="test-examples">
+                <h2>Test Input & Expected Output</h2>
+                <div id="test-examples-container">
+                    <!-- Multiple test input/output pairs will be dynamically inserted here -->
+                </div>
+            </section>
+
+            <section id="symbol-picker-container">
+                <h2>Symbol Picker</h2>
+                <div id="symbol-picker">
+                    <button class="symbol-btn" data-value="0">0</button>
+                    <button class="symbol-btn" data-value="1">1</button>
+                    <button class="symbol-btn" data-value="2">2</button>
+                    <button class="symbol-btn" data-value="3">3</button>
+                    <button class="symbol-btn" data-value="4">4</button>
+                    <button class="symbol-btn" data-value="5">5</button>
+                    <button class="symbol-btn" data-value="6">6</button>
+                    <button class="symbol-btn" data-value="7">7</button>
+                    <button class="symbol-btn" data-value="8">8</button>
+                    <button class="symbol-btn" data-value="9">9</button>
+                </div>
+            </section>
+
+            <section id="ai-output-container">
+                <h2>AI Output</h2>
+                <div id="ai-output"></div>
+            </section>
+
+            <section id="debate-log-container">
+                <h2>AI Multi-Agent Debate Log</h2>
+                <button id="start-debate" class="btn-primary">Start Debate</button>
+                <div id="debate-log"></div>
+            </section>
+            
+            <section id="validate-reasoning-container">
+                <h2>Validate AI Reasoning</h2>
+                <button id="approve-btn" class="btn-success">Approve</button>
+                <button id="reject-btn" class="btn-danger">Reject</button>
+                <div id="human-validation-queue"></div>
+            </section>
+            
+            <section id="knowledge-graph-container">
+                <h2>Knowledge Graph Visualization</h2>
+                <canvas id="kg-visual"></canvas>
+            </section>
+        </div>
+
+        <!-- ✅ JavaScript files placed at the bottom for optimal loading -->
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+        <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+        <script src="static/js/arc_grid.js"></script>
+        <script src="static/js/grid_renderer.js"></script>
+        <script src="static/js/testing_interface.js"></script>
+        <script src="static/js/debate_history.js"></script>
+    </body>
 </html>

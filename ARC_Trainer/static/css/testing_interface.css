@@ -1,3 +1,4 @@
+/* General Page Styles */
 body {
     font-family: Arial, sans-serif;
     background-color: #f5f5f5;
@@ -6,8 +7,7 @@ body {
     padding: 20px;
 }
 
-#workspace {
-    width: 100%;
+.container {
     max-width: 1200px;
     margin: auto;
     background: white;
@@ -16,94 +16,22 @@ body {
     box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 }
 
-#training-examples-container, #test-example-container, #ai-output-container, #debate-log-container, #solve-problem-container {
-    margin-top: 20px;
-    padding: 15px;
-    background: #eaeaea;
-    border-radius: 5px;
-}
-
-.example-wrapper {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    flex-wrap: wrap;
-    background: #ffffff;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 5px;
-    overflow-x: auto;
-    max-width: 100%;
-}
-
-.grid-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(25px, 1fr));
-    grid-auto-rows: 25px;
-    gap: 2px;
-    border: 1px solid black;
-    max-width: 100%;
-    overflow-x: auto;
-}
-
-.grid-cell {
-    width: 25px;
-    height: 25px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid black;
-    font-size: 10px;
-    background-color: #fff;
-    cursor: pointer;
+header {
+    background-color: #333;
+    color: white;
+    padding: 15px 0;
+    font-size: 1.5em;
     text-align: center;
 }
 
-.grid-cell.editable {
-    background-color: #f0f8ff;
-    border: 2px dashed #007bff;
-}
-
-#test-grid-container {
-    display: grid;
-    grid-template-columns: repeat(10, 30px);
-    grid-auto-rows: 30px;
-    justify-content: center;
-    align-items: center;
-    padding: 20px;
-    background: #ffffff;
-    border: 2px solid #000;
-    border-radius: 5px;
-    overflow-x: auto;
-    max-width: fit-content;
-    margin: auto;
-}
-
-#test-grid-container .grid-cell {
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid black;
-    font-size: 14px;
-    background-color: #f8f9fa;
-    cursor: pointer;
-    text-align: center;
-}
-
-#test-grid-container .grid-cell.editable {
-    background-color: #d1ecf1;
-    border: 2px dashed #007bff;
-}
-
+/* Button Styles */
 button {
     padding: 10px 15px;
     font-size: 14px;
     cursor: pointer;
     border: none;
     border-radius: 4px;
+    margin: 5px;
 }
 
 .btn-primary {
@@ -121,13 +49,74 @@ button {
     color: white;
 }
 
-#test-grid-container, #ai-output-container, #debate-log-container, #solve-problem-container {
-    margin-top: 20px;
-    padding: 15px;
-    background: #eaeaea;
-    border-radius: 5px;
+/* ✅ Fix Grid Alignment & Display */
+.grid-container {
+    display: grid;
+    grid-template-columns: repeat(var(--grid-cols, 5), 30px); /* Dynamically set cols */
+    grid-auto-rows: 30px;
+    gap: 2px;
+    padding: 5px;
+    border: 1px solid black;
+    background-color: #fff;
+    justify-content: center;
 }
 
+/* Grid Cell Styling */
+.grid-cell {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid black;
+    font-size: 12px;
+    background-color: white;
+}
+
+/* ✅ Fix Training & Test Examples Layout */
+#train-examples, #test-examples-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: space-around;
+    padding: 10px;
+}
+
+/* ✅ Fix Layout of Training Example Pairs */
+.example-pair {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 2px solid #ccc;
+    padding: 10px;
+    background-color: #f9f9f9;
+    max-width: 400px;
+    min-width: 200px;
+}
+
+.train-example-pair, .test-example-pair {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 15px;
+    border: 2px solid #ccc;
+    background-color: #f9f9f9;
+    margin-bottom: 20px;
+}
+
+.train-grid-container, .test-grid-container {
+    flex: 1;
+    text-align: center;
+}
+
+
+/* Labels for Input/Output Sections */
+.grid-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* ✅ Fix Debate Log Overflow */
 #debate-log {
     max-height: 300px;
     overflow-y: auto;
