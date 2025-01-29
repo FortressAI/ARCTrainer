@@ -7,13 +7,22 @@ document.addEventListener("DOMContentLoaded", function () {
             this.gridData = [];
         }
 
+        validateGrid(data) {
+            if (!Array.isArray(data) || data.length === 0 || !Array.isArray(data[0])) {
+                console.error("❌ Invalid grid format.");
+                return false;
+            }
+            const rowLength = data[0].length;
+            return data.every(row => Array.isArray(row) && row.length === rowLength);
+        }
+
         renderGrid(data, editable = false) {
             if (!this.gridContainer) {
                 console.error(`❌ Grid container with ID '${this.gridContainerId}' not found!`);
                 return;
             }
-            if (!data || data.length === 0) {
-                console.error("❌ Attempted to render an empty grid.");
+            if (!this.validateGrid(data)) {
+                console.error("❌ Grid data is not structured correctly.");
                 return;
             }
             
@@ -23,8 +32,8 @@ document.addEventListener("DOMContentLoaded", function () {
             
             this.gridContainer.innerHTML = "";
             this.gridContainer.style.display = "grid";
-            this.gridContainer.style.gridTemplateColumns = `repeat(${cols}, 40px)`;
-            this.gridContainer.style.gridTemplateRows = `repeat(${rows}, 40px)`;
+            this.gridContainer.style.gridTemplateColumns = `repeat(${cols}, 30px)`;
+            this.gridContainer.style.gridTemplateRows = `repeat(${rows}, 30px)`;
             this.gridContainer.style.gap = "2px";
             this.gridContainer.style.border = "2px solid black";
             
@@ -37,13 +46,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     div.style.backgroundColor = getColorForValue(cell);
                     div.dataset.row = rowIndex;
                     div.dataset.col = colIndex;
-                    div.style.width = "40px";
-                    div.style.height = "40px";
+                    div.style.width = "30px";
+                    div.style.height = "30px";
                     div.style.border = "1px solid #000";
                     div.style.display = "flex";
                     div.style.alignItems = "center";
                     div.style.justifyContent = "center";
-                    div.textContent = "";
+                    div.style.fontSize = "12px";
+                    div.textContent = cell;
                     if (editable) {
                         div.contentEditable = "true";
                         div.addEventListener("input", (event) => this.updateGridData(event));
@@ -57,8 +67,13 @@ document.addEventListener("DOMContentLoaded", function () {
             let cell = event.target;
             let row = parseInt(cell.dataset.row);
             let col = parseInt(cell.dataset.col);
-            this.gridData[row][col] = cell.textContent.trim() || "0";
-            cell.style.backgroundColor = getColorForValue(this.gridData[row][col]);
+            let value = parseInt(cell.textContent.trim());
+            if (isNaN(value) || value < 0 || value > 9) {
+                cell.textContent = "0";
+                value = 0;
+            }
+            this.gridData[row][col] = value;
+            cell.style.backgroundColor = getColorForValue(value);
         }
 
         getGridData() {
@@ -76,7 +91,8 @@ document.addEventListener("DOMContentLoaded", function () {
             "5": "#ffff00",
             "6": "#ff00ff",
             "7": "#00ffff",
-            "8": "#808080"
+            "8": "#808080",
+            "9": "#a52a2a"
         };
         return colors[value] || "#ffffff";
     }
@@ -94,24 +110,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     let exampleWrapper = document.createElement("div");
                     exampleWrapper.classList.add("example-wrapper");
 
-                    let inputTitle = document.createElement("h3");
-                    inputTitle.textContent = `Training Example ${index + 1} - Input`;
-                    exampleWrapper.appendChild(inputTitle);
+                    let inputContainer = document.createElement("div");
+                    inputContainer.innerHTML = `<div class='example-title'>Input</div><div id='input-grid-${index}' class='grid-container'></div>`;
 
-                    let inputGrid = document.createElement("div");
-                    inputGrid.id = `input-grid-${index}`;
-                    inputGrid.classList.add("grid-container");
-                    exampleWrapper.appendChild(inputGrid);
+                    let outputContainer = document.createElement("div");
+                    outputContainer.innerHTML = `<div class='example-title'>Expected Output</div><div id='output-grid-${index}' class='grid-container'></div>`;
 
-                    let outputTitle = document.createElement("h3");
-                    outputTitle.textContent = `Training Example ${index + 1} - Expected Output`;
-                    exampleWrapper.appendChild(outputTitle);
-
-                    let outputGrid = document.createElement("div");
-                    outputGrid.id = `output-grid-${index}`;
-                    outputGrid.classList.add("grid-container");
-                    exampleWrapper.appendChild(outputGrid);
-
+                    exampleWrapper.appendChild(inputContainer);
+                    exampleWrapper.appendChild(outputContainer);
                     trainContainer.appendChild(exampleWrapper);
 
                     new ARCGrid(`input-grid-${index}`).renderGrid(example.input);
@@ -121,25 +127,6 @@ document.addEventListener("DOMContentLoaded", function () {
             .catch(error => console.error("Error loading ARC task:", error));
     }
 
-    function submitTask() {
-        let outputData = outputGrid.getGridData();
-        console.log("📤 Submitting Test Grid Data:", outputData);
-        fetch("/api/process-arc-task", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ task: outputData })
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log("✅ AI Response Received:", data);
-            document.getElementById("ai-output").textContent = JSON.stringify(data.solution, null, 2);
-        })
-        .catch(error => console.error("Error submitting ARC task:", error));
-    }
-
     document.getElementById("load-task-btn").addEventListener("click", loadRandomTask);
-    document.getElementById("submit-task-btn").addEventListener("click", submitTask);
-
-    // Load first task automatically
     loadRandomTask();
 });

@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", function() {
     class GridRenderer {
         constructor(containerId) {
             this.gridContainer = document.getElementById(containerId);
@@ -12,20 +12,22 @@ document.addEventListener("DOMContentLoaded", function () {
         renderGrid(data, editable = false) {
             if (!this.gridContainer) return;
             this.gridContainer.innerHTML = "";
-            if (!data || data.length === 0) {
-                console.error("❌ Attempted to render an empty grid.");
+            if (!data || !Array.isArray(data) || data.length === 0) {
+                console.error("❌ Attempted to render an empty or invalid grid.");
                 return;
             }
+
+            // Determine grid size dynamically
             const rows = data.length;
             const cols = Math.max(...data.map(row => row.length));
             console.log(`📊 Rendering grid: ${rows} x ${cols}`);
-            
+
             this.gridContainer.style.display = "grid";
             this.gridContainer.style.gridTemplateColumns = `repeat(${cols}, 40px)`;
             this.gridContainer.style.gridTemplateRows = `repeat(${rows}, 40px)`;
             this.gridContainer.style.gap = "2px";
             this.gridContainer.style.border = "2px solid black";
-            
+
             this.gridData = data;
 
             this.gridData.forEach((row, rowIndex) => {
@@ -41,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     div.style.display = "flex";
                     div.style.alignItems = "center";
                     div.style.justifyContent = "center";
-                    div.textContent = "";
+                    div.textContent = cell;
                     if (editable) {
                         div.contentEditable = "true";
                         div.addEventListener("input", (event) => this.validateGridInput(event));
@@ -53,16 +55,15 @@ document.addEventListener("DOMContentLoaded", function () {
 
         validateGridInput(event) {
             let cell = event.target;
-            let validValues = ["0", "1", "2", "3", "4", "5", "6", "7", "8"];
+            let validValues = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
             let newValue = cell.textContent.trim();
             if (!validValues.includes(newValue)) {
-                cell.textContent = "";
+                cell.textContent = "0";
             } else {
                 let row = parseInt(cell.dataset.row);
                 let col = parseInt(cell.dataset.col);
-                this.gridData[row][col] = newValue;
+                this.gridData[row][col] = parseInt(newValue);
                 cell.style.backgroundColor = getColorForValue(newValue);
-                cell.textContent = "";
             }
         }
 
@@ -81,12 +82,14 @@ document.addEventListener("DOMContentLoaded", function () {
             "5": "#ffff00",
             "6": "#ff00ff",
             "7": "#00ffff",
-            "8": "#808080"
+            "8": "#808080",
+            "9": "#a52a2a"
         };
         return colors[value] || "#ffffff";
     }
 
     const trainContainer = document.getElementById("train-examples");
+    const testGridContainer = document.getElementById("test-grid-container");
     
     document.getElementById("load-task-btn").addEventListener("click", function() {
         let fileInput = document.getElementById("load-task-file");
@@ -128,8 +131,13 @@ document.addEventListener("DOMContentLoaded", function () {
                 new GridRenderer(`output-grid-${index}`).renderGrid(example.output);
             });
             
-            let testGrid = new GridRenderer("test-grid-container");
-            testGrid.renderGrid(taskData.test[0].input, true);
+            if (taskData.test && taskData.test.length > 0) {
+                console.log(`📊 Test Grid: ${taskData.test[0].input.length}x${taskData.test[0].input[0].length}`);
+                let testGrid = new GridRenderer("test-grid-container");
+                testGrid.renderGrid(taskData.test[0].input, true);
+            } else {
+                console.error("❌ No test data found in task file.");
+            }
         };
         reader.readAsText(file);
     });

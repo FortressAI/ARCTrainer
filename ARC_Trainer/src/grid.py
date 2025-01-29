@@ -26,6 +26,8 @@ class GridManager:
             for row in grid:
                 if len(row) != row_length:
                     raise ValueError("All rows in the grid must have the same length.")
+                if not all(isinstance(cell, int) and 0 <= cell <= 9 for cell in row):
+                    raise ValueError("Grid can only contain integers between 0 and 9.")
 
             logger.info("Grid validated successfully.")
             return True
@@ -49,7 +51,7 @@ class GridManager:
                 raise ValueError("Invalid grid format.")
 
             if transformation == "invert":
-                transformed = [[1 - cell if isinstance(cell, int) and 0 <= cell <= 1 else cell for cell in row] for row in grid]
+                transformed = [[9 - cell for cell in row] for row in grid]
             elif transformation == "rotate":
                 transformed = [list(row) for row in zip(*grid[::-1])]
             elif transformation == "mirror":
@@ -107,7 +109,7 @@ if __name__ == "__main__":
     # Example usage
     manager = GridManager()
 
-    grid = [[0, 1, 0], [1, 0, 1], [0, 1, 0]]
+    grid = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
     print("Original Grid:", grid)
 
     transformed = manager.transform_grid(grid, "invert")

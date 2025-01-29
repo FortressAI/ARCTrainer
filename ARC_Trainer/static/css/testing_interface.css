@@ -1,88 +1,138 @@
-/* Updated css/testing_interface.css */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f5f5f5;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
 
-#grid-container {
+#workspace {
+    width: 100%;
+    max-width: 1200px;
+    margin: auto;
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+}
+
+#training-examples-container, #test-example-container, #ai-output-container, #debate-log-container, #solve-problem-container {
+    margin-top: 20px;
+    padding: 15px;
+    background: #eaeaea;
+    border-radius: 5px;
+}
+
+.example-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    background: #ffffff;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.grid-container {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 5px;
-    margin: 1rem 0;
-    justify-content: center;
+    grid-template-columns: repeat(auto-fit, minmax(25px, 1fr));
+    grid-auto-rows: 25px;
+    gap: 2px;
+    border: 1px solid black;
+    max-width: 100%;
+    overflow-x: auto;
 }
 
 .grid-cell {
-    width: 50px;
-    height: 50px;
-    border: 1px solid #ccc;
+    width: 25px;
+    height: 25px;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background-color 0.3s ease, transform 0.1s ease-in-out;
-    user-select: none;
+    border: 1px solid black;
+    font-size: 10px;
+    background-color: #fff;
+    cursor: pointer;
+    text-align: center;
 }
 
-.grid-cell:hover {
-    transform: scale(1.1);
+.grid-cell.editable {
+    background-color: #f0f8ff;
+    border: 2px dashed #007bff;
 }
 
-.grid-cell.cell-0 { background-color: #ffffff; }
-.grid-cell.cell-1 { background-color: #ffdd57; }
-.grid-cell.cell-2 { background-color: #57a4ff; }
-.grid-cell.cell-3 { background-color: #ff5757; }
-.grid-cell.cell-4 { background-color: #57ff57; }
-.grid-cell.cell-5 { background-color: #ff00ff; }
-.grid-cell.cell-6 { background-color: #00ffff; }
-.grid-cell.cell-7 { background-color: #808080; }
-.grid-cell.cell-8 { background-color: #000000; }
-
-.grid-cell:focus {
-    outline: 3px solid #3498db;
-}
-
-#task-demo {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+#test-grid-container {
+    display: grid;
+    grid-template-columns: repeat(10, 30px);
+    grid-auto-rows: 30px;
     justify-content: center;
+    align-items: center;
+    padding: 20px;
+    background: #ffffff;
+    border: 2px solid #000;
+    border-radius: 5px;
+    overflow-x: auto;
+    max-width: fit-content;
+    margin: auto;
 }
 
-#task-demo div {
-    width: 50px;
-    height: 50px;
-    border: 1px solid #ddd;
-    background-color: #eaeaea;
+#test-grid-container .grid-cell {
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border: 1px solid black;
+    font-size: 14px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    text-align: center;
 }
 
-textarea {
-    resize: none;
-    width: 100%;
-    padding: 5px;
+#test-grid-container .grid-cell.editable {
+    background-color: #d1ecf1;
+    border: 2px dashed #007bff;
 }
 
 button {
-    margin-top: 0.5rem;
     padding: 10px 15px;
-    background-color: #3498db;
-    color: white;
+    font-size: 14px;
+    cursor: pointer;
     border: none;
     border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.3s ease, transform 0.1s ease-in-out;
 }
 
-button:hover {
-    background-color: #2980b9;
-    transform: scale(1.05);
+.btn-primary {
+    background-color: #007bff;
+    color: white;
 }
 
-@media (max-width: 768px) {
-    #grid-container {
-        grid-template-columns: repeat(3, 1fr);
-    }
-    .grid-cell {
-        width: 40px;
-        height: 40px;
-    }
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+#test-grid-container, #ai-output-container, #debate-log-container, #solve-problem-container {
+    margin-top: 20px;
+    padding: 15px;
+    background: #eaeaea;
+    border-radius: 5px;
+}
+
+#debate-log {
+    max-height: 300px;
+    overflow-y: auto;
+    text-align: left;
+    background: #fff;
+    padding: 10px;
+    border: 1px solid #ddd;
 }
