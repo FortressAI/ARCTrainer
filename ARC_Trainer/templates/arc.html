@@ -3,27 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ARC Dataset Mode</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/common.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/testing_interface.css') }}">
-    <script src="{{ url_for('static', filename='js/grid_renderer.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/arc_grid.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/testing_interface.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/home.js') }}" defer></script>
+    <title>ARC Trainer - AI Debate & Reasoning Validation</title>
+    <link rel="stylesheet" href="static/css/common.css">
+    <link rel="stylesheet" href="static/css/testing_interface.css">
 </head>
 <body>
-    <h1>ARC Dataset Mode</h1>
-    <button id="load-task-btn">Load Task</button>
-    <button id="submit-task-btn">Submit Task</button>
-    <div id="grid-container" class="grid-container"></div>
-    <div id="task-demo-grid" class="grid-container"></div>
-    <div id="test-input-grid" class="grid-container"></div>
-    <div id="submission-grid" class="grid-container"></div>
-
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            console.log("✅ ARC HTML Loaded Successfully");
-        });
-    </script>
+    <header>
+        <h1>ARC Trainer - AI Debate & Reasoning Validation</h1>
+    </header>
+    
+    <section id="controls">
+        <button id="load-task-btn" class="btn-primary">Load Task</button>
+        <button id="submit-task-btn" class="btn-success">Submit Task</button>
+        <input type="file" id="load-task-file" accept=".json">
+    </section>
+    
+    <section id="training-examples-container">
+        <h2>Training Examples</h2>
+        <div id="train-examples" class="grid-container"></div>
+    </section>
+    
+    <section id="test-example-container">
+        <h2>Test Grid - Solve the Challenge</h2>
+        <div id="test-grid-container" class="grid-container"></div>
+    </section>
+    
+    <section id="ai-output-container">
+        <h2>AI Output</h2>
+        <pre id="ai-output"></pre>
+    </section>
+    
+    <section id="debate-log-container">
+        <h2>AI Debate & Reasoning</h2>
+        <button id="start-debate-btn" class="btn-highlight">Start AI Debate</button>
+        <button id="approve-btn" class="btn-success">Approve Solution</button>
+        <button id="reject-btn" class="btn-danger">Reject Solution</button>
+        <div id="debate-log" class="log-container"></div>
+    </section>
+    
+    <script src="static/js/grid_renderer.js"></script>
+    <script src="static/js/arc_grid.js"></script>
+    <script src="static/js/testing_interface.js"></script>
+    <script src="static/js/home.js"></script>
 </body>
 </html>

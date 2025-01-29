@@ -56,6 +56,15 @@ def lhe_knowledge_graph_page():
 
 # -------------------- ✅ ARC TASK PROCESSING --------------------
 
+@app.route("/api/load-random-arc-task", methods=["GET"])
+def load_random_arc_task():
+    """Loads a random ARC dataset task."""
+    task_name = task_manager.get_random_task()
+    if not task_name:
+        return jsonify({"error": "No available tasks"}), 404
+    response, status_code = task_manager.load_arc_task(task_name)
+    return jsonify(response), status_code
+
 @app.route("/api/load-arc-task", methods=["GET"])
 def load_arc_task():
     """Loads an ARC dataset task using TaskManager."""

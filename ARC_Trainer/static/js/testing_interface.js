@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     class TestingInterface {
         constructor() {
             this.initButtons();
@@ -6,21 +6,30 @@ document.addEventListener("DOMContentLoaded", function() {
         }
 
         initButtons() {
-            document.getElementById("load-task-btn").addEventListener("click", () => this.loadRandomTask());
-            document.getElementById("submit-task-btn").addEventListener("click", () => this.submitTask());
-            document.getElementById("approve-btn").addEventListener("click", () => this.validateReasoning("approved"));
-            document.getElementById("reject-btn").addEventListener("click", () => this.validateReasoning("rejected"));
-            document.getElementById("modify-btn").addEventListener("click", () => this.modifyTask());
+            let loadBtn = document.getElementById("load-task-btn");
+            let submitBtn = document.getElementById("submit-task-btn");
+            let approveBtn = document.getElementById("approve-btn");
+            let rejectBtn = document.getElementById("reject-btn");
+            let modifyBtn = document.getElementById("modify-btn");
+
+            if (loadBtn) loadBtn.addEventListener("click", () => this.loadRandomTask());
+            if (submitBtn) submitBtn.addEventListener("click", () => this.submitTask());
+            if (approveBtn) approveBtn.addEventListener("click", () => this.validateReasoning("approved"));
+            if (rejectBtn) rejectBtn.addEventListener("click", () => this.validateReasoning("rejected"));
+            if (modifyBtn) modifyBtn.addEventListener("click", () => this.modifyTask());
         }
 
         initSymbolPicker() {
-            document.getElementById("symbol-container").addEventListener("click", function(event) {
-                if (event.target.classList.contains("symbol-option")) {
-                    let selectedSymbol = event.target.textContent;
-                    let activeCells = document.querySelectorAll("#output-grid-container .grid-cell:focus");
-                    activeCells.forEach(cell => cell.textContent = selectedSymbol);
-                }
-            });
+            let symbolContainer = document.getElementById("symbol-container");
+            if (symbolContainer) {
+                symbolContainer.addEventListener("click", function(event) {
+                    if (event.target.classList.contains("symbol-option")) {
+                        let selectedSymbol = event.target.textContent;
+                        let activeCells = document.querySelectorAll("#output-grid-container .grid-cell:focus");
+                        activeCells.forEach(cell => cell.textContent = selectedSymbol);
+                    }
+                });
+            }
         }
 
         loadRandomTask() {
