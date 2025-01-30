@@ -54,19 +54,23 @@
             <section id="ai-output-container">
                 <h2>AI Output</h2>
                 <div id="ai-output"></div>
+                <img id="ai-output-png" src="" alt="AI Solution">
             </section>
 
             <section id="debate-log-container">
                 <h2>AI Multi-Agent Debate Log</h2>
                 <button id="start-debate" class="btn-primary">Start Debate</button>
                 <div id="debate-log"></div>
+                <div id="debate-examples"></div>  <!-- ✅ Added missing div for debate examples -->
             </section>
-            
+                        
             <section id="validate-reasoning-container">
                 <h2>Validate AI Reasoning</h2>
                 <button id="approve-btn" class="btn-success">Approve</button>
                 <button id="reject-btn" class="btn-danger">Reject</button>
                 <div id="human-validation-queue"></div>
+                <textarea id="human-feedback" placeholder="Provide feedback or corrections..."></textarea>
+                <button id="submit-feedback" class="btn-info">Submit Feedback</button>
             </section>
             
             <section id="knowledge-graph-container">
@@ -82,5 +86,26 @@
         <script src="static/js/grid_renderer.js"></script>
         <script src="static/js/testing_interface.js"></script>
         <script src="static/js/debate_history.js"></script>
+        <script>
+            document.getElementById("submit-feedback").addEventListener("click", async function () {
+                let feedback = document.getElementById("human-feedback").value;
+                if (!feedback.trim()) {
+                    alert("Feedback cannot be empty.");
+                    return;
+                }
+                try {
+                    await fetch("/api/human-feedback", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ feedback: feedback })
+                    });
+                    alert("Feedback submitted successfully!");
+                    document.getElementById("human-feedback").value = "";
+                } catch (error) {
+                    console.error("Error submitting feedback:", error);
+                    alert("Failed to submit feedback. Try again.");
+                }
+            });
+        </script>
     </body>
 </html>

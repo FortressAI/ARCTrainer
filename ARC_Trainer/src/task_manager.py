@@ -4,15 +4,22 @@ import random
 from neo4j import GraphDatabase
 from loguru import logger
 import uuid
+import matplotlib.pyplot as plt
+from pathlib import Path
+from flask import Flask, request, jsonify, send_file
 from src.llm_client import LLMClient
 from src.PrologRuleGenerator import PrologRuleGenerator
 from src.learning_agent import LearningAgent
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # Moves up one level from 'src'
-DATASET_DIR = os.path.join(BASE_DIR, "datasets", "evaluation")  # Path to ARC dataset directory
+DATASET_DIR = Path(BASE_DIR) / "datasets/evaluation"  # Path to ARC dataset directory
+IMAGE_DIR = Path(BASE_DIR) / "generated_images"
+IMAGE_DIR.mkdir(exist_ok=True)
 
 logger.info(f"📂 Using dataset directory: {DATASET_DIR}")
 HUMAN_VALIDATION_QUEUE = []  # Queue for human validation tasks
+
+app = Flask(__name__)
 
 class TaskManager:
     def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
@@ -29,16 +36,16 @@ class TaskManager:
 
     def get_random_task(self):
         """Selects a random ARC task file from the dataset directory."""
-        files = [f.replace(".json", "") for f in os.listdir(DATASET_DIR) if f.endswith(".json")]
+        files = [f.stem for f in DATASET_DIR.glob("*.json")]
         return random.choice(files) if files else None
 
     def load_arc_task(self, task_name="default_task"):
         """Loads an ARC dataset task from the datasets directory."""
-        task_path = os.path.join(DATASET_DIR, f"{task_name}.json")
+        task_path = DATASET_DIR / f"{task_name}.json"
         
         logger.info(f"🔍 Checking ARC task file path: {task_path}")
 
-        if not os.path.exists(task_path):
+        if not task_path.exists():
             logger.error(f"❌ Task file does not exist: {task_path}")
             return {"error": f"Task '{task_name}' not found in dataset"}, 404
 
@@ -56,6 +63,17 @@ class TaskManager:
     def validate_task_data(self, task_data):
         """Validates task data structure."""
         return isinstance(task_data, dict) and "train" in task_data and "test" in task_data
+
+    def log_to_knowledge_graph(self, task_name, solution, prolog_rule, success):
+        """Stores AI solutions and Prolog-based reasoning in the Knowledge Graph."""
+        with self.driver.session() as session:
+            session.run(
+                """
+                MERGE (t:Task {name: $task_name})
+                SET t.solution = $solution, t.prolog_rule = $prolog_rule, t.success = $success
+                """,
+                task_name=task_name, solution=json.dumps(solution), prolog_rule=prolog_rule, success=success
+            )
 
     def attempt_solution(self, task_data, user_solution=None):
         """Uses AI to solve the ARC task with structured reasoning, checking KG first."""
@@ -75,9 +93,9 @@ class TaskManager:
         except json.JSONDecodeError:
             solution = []  # Fallback to empty if LLM output is not structured correctly
 
-        prolog_rule = self.convert_cnl_to_prolog(json.dumps(solution))
-        if not self.validate_solution_with_prolog(prolog_rule):
-            self.log_counterexample(task_data["name"], solution)
+        prolog_rule = self.prolog_generator.generate_prolog_rule(json.dumps(solution))
+        if not self.prolog_generator.validate_rule_against_test_cases(prolog_rule, []):
+            self.log_to_knowledge_graph(task_data["name"], solution, prolog_rule, False)
             return solution, False
 
         self.log_to_knowledge_graph(task_data["name"], solution, prolog_rule, True)
@@ -95,31 +113,20 @@ class TaskManager:
             )
             return result.single() if result else None
 
-    def convert_cnl_to_prolog(self, cnl_rule):
-        """Converts a Controlled Natural Language rule into Prolog using LLM."""
-        response = self.llm_client.query_llm(f"Convert this CNL rule into Prolog: {cnl_rule}")
-        return response.get("response", "Failed to generate Prolog")
+@app.route("/api/generate-png", methods=["GET"])
+def generate_png():
+    task_name = request.args.get("task")
+    pair_type = request.args.get("pair")  # "input" or "output"
+    index = int(request.args.get("index"))
+    
+    task_manager = TaskManager()
+    img_path, status = task_manager.generate_png(task_name, pair_type, index)
+    task_manager.close()
+    
+    if img_path is None:
+        return jsonify({"error": "Image generation failed"}), status
+    
+    return send_file(img_path, mimetype='image/png')
 
-    def validate_solution_with_prolog(self, prolog_rule):
-        """Validates the AI solution using Prolog rule matching."""
-        return self.prolog_generator.validate_rule_against_test_cases(prolog_rule, [])
-
-    def log_counterexample(self, task_name, solution):
-        """Logs failed AI solutions into the Knowledge Graph as counterexamples."""
-        with self.driver.session() as session:
-            session.run(
-                """
-                CREATE (t:Task {name: $task_name, failed_solution: $solution, success: False})
-                """,
-                task_name=task_name, solution=json.dumps(solution)
-            )
-
-    def log_to_knowledge_graph(self, task_name, solution, prolog_rule, success):
-        """Stores AI solutions and Prolog-based reasoning in the Knowledge Graph."""
-        with self.driver.session() as session:
-            session.run(
-                """
-                CREATE (t:Task {name: $task_name, solution: $solution, prolog_rule: $prolog_rule, success: $success})
-                """,
-                task_name=task_name, solution=json.dumps(solution), prolog_rule=prolog_rule, success=success
-            )
+if __name__ == "__main__":
+    app.run(debug=True, host="0.0.0.0", port=5002)

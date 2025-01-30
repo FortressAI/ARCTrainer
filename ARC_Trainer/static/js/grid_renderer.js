@@ -1,5 +1,5 @@
 document.addEventListener("DOMContentLoaded", function () {
-    console.log("✅ grid_render.js is loaded.");
+    console.log("✅ grid_renderer.js is loaded.");
 
     class GridRenderer {
         constructor(containerId) {
@@ -96,8 +96,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         taskData.train.forEach((example, index) => {
-            console.log(`📊 Training Example ${index + 1}: ${example.input.length}x${example.input[0].length}`);
-
             let exampleWrapper = document.createElement("div");
             exampleWrapper.classList.add("example-wrapper");
 
@@ -134,7 +132,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        console.log(`📊 Test Grid: ${taskData.test[0].input.length}x${taskData.test[0].input[0].length}`);
         let testGrid = new GridRenderer("test-grid-container");
         testGrid.renderGrid(taskData.test[0].input, true);
     }

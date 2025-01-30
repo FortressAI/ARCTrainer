@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
             this.correctAnswers = [];
             this.testPairs = [];
 
-            this.initSymbolPicker();  // ✅ Called after being defined
+            this.initSymbolPicker();
             this.initButtons();
             this.loadRandomTask();
         }
@@ -38,11 +38,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         initButtons() {
-            let loadBtn = document.getElementById("load-task-btn");
-            let submitBtn = document.getElementById("submit-task-btn");
-
-            if (loadBtn) loadBtn.addEventListener("click", () => this.loadRandomTask());
-            if (submitBtn) submitBtn.addEventListener("click", () => this.submitTask());
+            document.getElementById("load-task-btn").addEventListener("click", () => this.loadRandomTask());
+            document.getElementById("submit-task-btn").addEventListener("click", () => this.submitTask());
         }
 
         async loadRandomTask() {
@@ -114,7 +111,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     let inputGrid = new ARCGrid(`test-input-${index}`);
                     inputGrid.renderGrid(pair.input);
 
-                    this.correctAnswers[index] = pair.output || [];  // ✅ Ensure correctAnswers[index] is initialized
+                    this.correctAnswers[index] = pair.output || [];
 
                     let outputGrid = new ARCGrid(`test-output-${index}`, true);
                     let emptyGrid = pair.output.map(row => row.map(() => 0));
@@ -142,42 +139,54 @@ document.addEventListener("DOMContentLoaded", function () {
             return container;
         }
 
-        submitTask() {
-            let outputGrid = document.getElementById("output-grid-container");
-            if (!outputGrid) {
-                alert("Output grid is missing.");
-                return;
-            }
+        async submitTask() {
+            let outputData = [];
+            document.querySelectorAll("#output-grid-container .grid-cell").forEach(cell => {
+                outputData.push(cell.textContent.trim() || "0");
+            });
 
-            let gridCells = outputGrid.getElementsByClassName("grid-cell");
-            let solution = [];
-            let rowData = [];
-            let rowSize = Math.sqrt(gridCells.length); // ✅ More reliable row size calculation
+            try {
+                let response = await fetch("/api/process-arc-task", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ solution: outputData })
+                });
+                let data = await response.json();
 
-            for (let i = 0; i < gridCells.length; i++) {
-                let value = parseInt(gridCells[i].textContent.trim()) || 0;
-                rowData.push(value);
-                if ((i + 1) % rowSize === 0) {
-                    solution.push(rowData);
-                    rowData = [];
-                }
-            }
-
-            let isCorrect = JSON.stringify(solution) === JSON.stringify(this.correctAnswers);
-
-            fetch("/api/process-arc-task", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ solution: solution, correct: isCorrect })
-            })
-            .then(response => response.json())
-            .then(data => {
                 document.getElementById("ai-output").textContent = JSON.stringify(data.solution, null, 2);
-            })
-            .catch(error => {
+                this.loadAIDebate();
+                this.loadKnowledgeGraph();
+            } catch (error) {
                 console.error("Error submitting ARC task:", error);
                 alert("Submission failed. Please try again.");
-            });
+            }
+        }
+
+        async loadAIDebate() {
+            try {
+                let response = await fetch("/api/get-debate-history");
+                let data = await response.json();
+                let debateContainer = document.getElementById("debate-log");
+                debateContainer.innerHTML = "";
+
+                data.debate_log.forEach((debate) => {
+                    let debateEntry = document.createElement("div");
+                    debateEntry.classList.add("debate-entry");
+
+                    debateEntry.innerHTML = `
+                        <p><strong>Rule:</strong> ${debate.rule}</p>
+                        <p><strong>Agent 1:</strong> ${debate.agent1}</p>
+                        <p><strong>Agent 2:</strong> ${debate.agent2}</p>
+                        <p><strong>Judge Decision:</strong> ${debate.judge}</p>
+                        <p class="${debate.contradiction ? 'contradiction-highlight' : 'valid-highlight'}">
+                            ${debate.contradiction ? "⚠ Contradiction Detected" : "✓ No Contradiction"}
+                        </p>
+                    `;
+                    debateContainer.appendChild(debateEntry);
+                });
+            } catch (error) {
+                console.error("Error loading AI debate:", error);
+            }
         }
 
         getColorForValue(value) {
