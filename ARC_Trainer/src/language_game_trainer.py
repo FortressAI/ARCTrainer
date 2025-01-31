@@ -5,7 +5,7 @@ from datasets import Dataset, DatasetDict
 from sklearn.model_selection import train_test_split
 
 class LanguageGameTrainer:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", model_name="bert-base-uncased"):
+    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="mysecurepassword", model_name="bert-base-uncased"):
         """
         Initializes the Language Game Trainer with Neo4j integration.
 

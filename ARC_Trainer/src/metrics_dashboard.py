@@ -6,7 +6,7 @@ import redis
 app = Flask(__name__)
 
 class MetricsDashboard:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", redis_host="localhost", redis_port=6379):
+    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="mysecurepassword", redis_host="localhost", redis_port=6379):
         """
         Initializes the Metrics Dashboard.
 

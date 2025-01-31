@@ -4,7 +4,7 @@ from src.llm_client import LLMClient
 from src.PrologRuleGenerator  import PrologRuleGenerator
 
 class LearningAgent:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
+    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="mysecurepassword"):
         """
         Initializes the Learning Agent with Neo4j for ontology storage and refinement.
 

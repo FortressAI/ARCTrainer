@@ -6,7 +6,7 @@ from datasets import Dataset, DatasetDict
 from neo4j import GraphDatabase
 
 class LLMFineTuner:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", model_name="bert-base-uncased"):
+    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="mysecurepassword", model_name="bert-base-uncased"):
         """
         Initializes the LLM Fine-Tuner with model, data paths, and Neo4j integration.
 

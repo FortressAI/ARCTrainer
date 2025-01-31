@@ -7,7 +7,7 @@ from src.learning_agent import LearningAgent
 app = Flask(__name__)
 
 class UserFeedbackManager:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
+    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="mysecurepassword"):
         """
         Initializes the User Feedback Manager.
 

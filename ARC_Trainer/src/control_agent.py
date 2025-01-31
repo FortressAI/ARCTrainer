@@ -6,7 +6,7 @@ from src.user_feedback import UserFeedback
 from src.llm_fine_tuner import LLMFineTuner
 
 class ControlAgent:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", config_file="config.json"):
+    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="mysecurepassword", config_file="config.json"):
         """
         Initializes the Control Agent with Neo4j, Prolog, and auxiliary components.
 

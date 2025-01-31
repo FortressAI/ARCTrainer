@@ -1,13 +1,24 @@
+/* 
+ * File: static/js/debate_history.js
+ * Purpose: Manages multi-agent debate logs, loads example grids, handles human validation.
+ */
+
 document.addEventListener("DOMContentLoaded", function () {
-    console.log("✅ DOM fully loaded, initializing DebateHistory...");
+    console.log("✅ debate_history.js loaded.");
 
     class DebateHistory {
         constructor() {
-            this.loadAllExamples();
+            // If your HTML has these buttons or elements, we hook them up:
             this.initDebateButton();
             this.loadHumanValidationQueue();
+
+            // If you want to load all examples at start:
+            this.loadAllExamples();
         }
 
+        // -------------------------------
+        //  1) LOAD ALL EXAMPLES
+        // -------------------------------
         async loadAllExamples() {
             try {
                 let response = await fetch("/api/load-all-examples");
@@ -16,44 +27,62 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 let data = await response.json();
                 console.log("✅ Loaded Debate Examples:", data);
-        
+
                 if (!data || !Array.isArray(data)) {
                     console.warn("⚠️ No valid examples found.");
                     return;
                 }
-        
+
                 this.displayExamples(data);
             } catch (error) {
                 console.error("❌ Error loading examples:", error);
             }
         }
-        
+
         displayExamples(examples) {
             let container = document.getElementById("debate-examples");
             
             if (!container) {
-                console.error("❌ Error: debate-examples container not found in the DOM.");
+                console.error("❌ Error: #debate-examples container not found in the DOM.");
                 return;
             }
-        
-            container.innerHTML = "";  // Reset container before adding new examples
-        
+
+            container.innerHTML = ""; // Clear old content
+
             examples.forEach((example, index) => {
                 let exampleWrapper = document.createElement("div");
                 exampleWrapper.classList.add("example-wrapper");
-        
-                let inputContainer = document.createElement("div");
-                inputContainer.innerHTML = `<div class='example-title'>Input ${index + 1}</div><img src='/api/generate-png?pair=input&index=${index}&task=${example.task}' alt='Input Grid' />`;
-                
-                let outputContainer = document.createElement("div");
-                outputContainer.innerHTML = `<div class='example-title'>Expected Output</div><img src='/api/generate-png?pair=output&index=${index}&task=${example.task}' alt='Output Grid' />`;
-        
-                exampleWrapper.appendChild(inputContainer);
-                exampleWrapper.appendChild(outputContainer);
+
+                // Create input image reference
+                let inputDiv = document.createElement("div");
+                inputDiv.innerHTML = `
+                  <div class='example-title'>Input ${index + 1}</div>
+                  <img src='/api/generate-png?pair=input&index=${index}&task=${example.task}' alt='Input Grid' />
+                `;
+
+                // Create output image reference
+                let outputDiv = document.createElement("div");
+                outputDiv.innerHTML = `
+                  <div class='example-title'>Expected Output</div>
+                  <img src='/api/generate-png?pair=output&index=${index}&task=${example.task}' alt='Output Grid' />
+                `;
+
+                exampleWrapper.appendChild(inputDiv);
+                exampleWrapper.appendChild(outputDiv);
                 container.appendChild(exampleWrapper);
             });
         }
-        
+
+        // -------------------------------
+        //  2) START DEBATE & LOAD LOGS
+        // -------------------------------
+        initDebateButton() {
+            let btn = document.getElementById("start-debate");
+            if (btn) {
+                btn.addEventListener("click", () => this.startDebate());
+            }
+        }
+
         async startDebate() {
             let response = await fetch("/api/start-ai-debate", {
                 method: "POST",
@@ -61,13 +90,34 @@ document.addEventListener("DOMContentLoaded", function () {
                 body: JSON.stringify({ allExamples: true })
             });
             let data = await response.json();
-            document.getElementById("debate-log").textContent = JSON.stringify(data, null, 2);
+            console.log("Debate started:", data);
+
+            // You might show the result in #debate-log or load logs next
+            this.loadDebateLogs();
         }
 
-        initDebateButton() {
-            document.getElementById("start-debate").addEventListener("click", () => this.startDebate());
+        loadDebateLogs() {
+            // If you have a specific puzzle name, pass it. Otherwise, no param => all logs
+            fetch("/api/get-debate-history")
+            .then(res => res.json())
+            .then(data => {
+                console.log("Debate logs received:", data.debate_log);
+                let logContainer = document.getElementById("debate-log");
+                if (!logContainer) return;
+
+                logContainer.innerHTML = "";
+                data.debate_log.forEach(entry => {
+                    let p = document.createElement("p");
+                    p.textContent = `[${entry.timestamp}] ${entry.text}`;
+                    logContainer.appendChild(p);
+                });
+            })
+            .catch(err => console.error("Error loading debate logs:", err));
         }
 
+        // -------------------------------
+        //  3) HUMAN VALIDATION QUEUE
+        // -------------------------------
         async loadHumanValidationQueue() {
             try {
                 let response = await fetch("/api/human-validation-queue");
@@ -75,9 +125,12 @@ document.addEventListener("DOMContentLoaded", function () {
                     throw new Error(`HTTP error! Status: ${response.status}`);
                 }
                 let data = await response.json();
-                let queueContainer = document.getElementById("human-validation-queue");
-                queueContainer.innerHTML = "";
+                console.log("✅ Validation queue:", data);
 
+                let queueContainer = document.getElementById("human-validation-queue");
+                if (!queueContainer) return;
+                
+                queueContainer.innerHTML = "";
                 data.queue.forEach(task => {
                     let taskEntry = document.createElement("div");
                     taskEntry.classList.add("validation-task");
@@ -118,5 +171,6 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
+    // Initialize everything
     new DebateHistory();
 });

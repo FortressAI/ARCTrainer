@@ -8,7 +8,7 @@ from datasets import Dataset, DatasetDict
 from sklearn.model_selection import train_test_split
 
 class LLMClientIntent:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", api_url="http://localhost:8000/api/intent", model_name="bert-base-uncased"):
+    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="mysecurepassword", api_url="http://localhost:8000/api/intent", model_name="bert-base-uncased"):
         """
         Initializes the LLM Intent Client with Neo4j and a fine-tuned model.
 

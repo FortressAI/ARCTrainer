@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 from loguru import logger
 
 class KGVisualizer:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password"):
+    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="mysecurepassword"):
         """
         Initializes the Knowledge Graph Visualizer with Neo4j integration.
 

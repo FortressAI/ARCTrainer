@@ -21,6 +21,7 @@
                 <button id="next-test-btn" class="btn-primary">Next Test</button>
             </header>
 
+            <!-- Training examples section -->
             <section id="training-examples">
                 <h2>Training Examples</h2>
                 <div id="train-examples">
@@ -28,13 +29,15 @@
                 </div>
             </section>
 
+            <!-- Test examples section -->
             <section id="test-examples">
-                <h2>Test Input & Expected Output</h2>
+                <h2>Test Input &amp; Expected Output</h2>
                 <div id="test-examples-container">
-                    <!-- Multiple test input/output pairs will be dynamically inserted here -->
+                    <!-- Multiple test input/output pairs (including the correct solution if revealed) are inserted by JS -->
                 </div>
             </section>
 
+            <!-- Symbol picker for painting cells -->
             <section id="symbol-picker-container">
                 <h2>Symbol Picker</h2>
                 <div id="symbol-picker">
@@ -51,19 +54,22 @@
                 </div>
             </section>
 
+            <!-- AI output after submitting -->
             <section id="ai-output-container">
                 <h2>AI Output</h2>
                 <div id="ai-output"></div>
                 <img id="ai-output-png" src="" alt="AI Solution">
             </section>
 
+            <!-- Multi-agent debate log -->
             <section id="debate-log-container">
                 <h2>AI Multi-Agent Debate Log</h2>
                 <button id="start-debate" class="btn-primary">Start Debate</button>
                 <div id="debate-log"></div>
-                <div id="debate-examples"></div>  <!-- ✅ Added missing div for debate examples -->
+                <div id="debate-examples"><!-- Inserted debate examples --></div>
             </section>
                         
+            <!-- Section for approving/rejecting AI reasoning and providing user feedback -->
             <section id="validate-reasoning-container">
                 <h2>Validate AI Reasoning</h2>
                 <button id="approve-btn" class="btn-success">Approve</button>
@@ -73,20 +79,26 @@
                 <button id="submit-feedback" class="btn-info">Submit Feedback</button>
             </section>
             
+            <!-- Knowledge Graph visualization placeholder -->
             <section id="knowledge-graph-container">
                 <h2>Knowledge Graph Visualization</h2>
                 <canvas id="kg-visual"></canvas>
             </section>
         </div>
 
-        <!-- ✅ JavaScript files placed at the bottom for optimal loading -->
+        <!-- Scripts at the bottom for faster loading -->
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
         <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+        <!-- Your JS files that handle grids, rendering, interaction, debate, etc. -->
+        <script src="static/js/common.js"></script>
         <script src="static/js/arc_grid.js"></script>
         <script src="static/js/grid_renderer.js"></script>
         <script src="static/js/testing_interface.js"></script>
         <script src="static/js/debate_history.js"></script>
+
         <script>
+            // Example: Submitting user feedback (if you have an endpoint /api/human-feedback)
             document.getElementById("submit-feedback").addEventListener("click", async function () {
                 let feedback = document.getElementById("human-feedback").value;
                 if (!feedback.trim()) {

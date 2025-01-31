@@ -9,7 +9,7 @@ from loguru import logger
 app = Flask(__name__)
 
 class KGDataExport:
-    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="password", export_dir="exports/"):
+    def __init__(self, uri="bolt://localhost:7687", user="neo4j", password="mysecurepassword", export_dir="exports/"):
         """
         Initializes the Knowledge Graph Data Export module.
 

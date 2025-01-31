@@ -1,203 +1,211 @@
 document.addEventListener("DOMContentLoaded", function () {
     console.log("✅ DOM fully loaded, initializing TestingInterface...");
 
-    if (typeof ARCGrid === "undefined") {
-        console.error("❌ Error: ARCGrid is not defined. Check if arc_grid.js is loading correctly.");
-        return;
-    }
-
     class TestingInterface {
         constructor() {
-            this.correctAnswers = [];
-            this.testPairs = [];
-
-            this.initSymbolPicker();
             this.initButtons();
             this.loadRandomTask();
         }
 
-        initSymbolPicker() {
-            console.log("✅ Initializing symbol picker...");
-            let symbolContainer = document.getElementById("symbol-picker");
-
-            if (!symbolContainer) {
-                console.error("❌ Error: Symbol picker container not found.");
-                return;
-            }
-
-            symbolContainer.addEventListener("click", (event) => {
-                if (event.target.classList.contains("symbol-btn")) {
-                    let selectedSymbol = event.target.dataset.value;
-                    let activeCells = document.querySelectorAll(".output-grid .grid-cell:focus");
-                    activeCells.forEach(cell => {
-                        cell.textContent = selectedSymbol;
-                        cell.style.backgroundColor = this.getColorForValue(selectedSymbol);
-                    });
-                }
-            });
-        }
-
         initButtons() {
-            document.getElementById("load-task-btn").addEventListener("click", () => this.loadRandomTask());
-            document.getElementById("submit-task-btn").addEventListener("click", () => this.submitTask());
+            let loadBtn = document.getElementById("load-task-btn");
+            let submitBtn = document.getElementById("submit-task-btn");
+
+            if (loadBtn) {
+                loadBtn.addEventListener("click", () => this.loadRandomTask());
+            }
+            if (submitBtn) {
+                submitBtn.addEventListener("click", () => this.submitSolution());
+            }
         }
 
         async loadRandomTask() {
-            console.log("✅ Loading ARC Task...");
-
             try {
                 let response = await fetch("/api/load-random-arc-task");
-                let taskData = await response.json();
+                if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+                let data = await response.json();
 
-                console.log("✅ Loaded Task Data:", taskData);
+                // data will include: 
+                //   name, train, test, correct_solutions
+                console.log("Loaded ARC Task Data:", data);
 
-                if (!taskData || !taskData.train || !taskData.test) {
-                    alert("Invalid task data received");
-                    return;
-                }
+                // Clear out old grids
+                document.getElementById("train-examples").innerHTML = "";
+                document.getElementById("test-examples-container").innerHTML = "";
+                document.getElementById("ai-output").textContent = "";
 
-                this.displayTrainingExamples(taskData.train);
-                this.displayTestPairs(taskData.test);
-
+                this.displayTrainExamples(data.train);
+                this.displayTestExamples(data.test, data.correct_solutions);
             } catch (error) {
-                console.error("❌ Error loading ARC task:", error);
-                alert("Failed to load ARC task. Please try again.");
+                console.error("❌ Error loading random task:", error);
+                alert("Failed to load random task. Check console for details.");
             }
         }
 
-        displayTrainingExamples(trainExamples) {
+        displayTrainExamples(trainList) {
             let trainContainer = document.getElementById("train-examples");
-            trainContainer.innerHTML = "";
+            if (!trainContainer) return;
 
-            trainExamples.forEach((pair, index) => {
-                let pairWrapper = document.createElement("div");
-                pairWrapper.classList.add("train-example-pair");
+            trainList.forEach((pair, idx) => {
+                // Create wrappers
+                let exampleWrapper = document.createElement("div");
+                exampleWrapper.classList.add("train-example-pair");
 
-                let inputWrapper = this.createLabeledGrid(`train-input-${index}`, `Training Example ${index + 1} - Input`);
-                let outputWrapper = this.createLabeledGrid(`train-output-${index}`, `Training Example ${index + 1} - Output`);
+                // Input grid
+                let inputDiv = document.createElement("div");
+                let inputTitle = document.createElement("h4");
+                inputTitle.textContent = `Train Example ${idx + 1} - Input`;
+                let inputGridDiv = document.createElement("div");
+                let inputGridId = `train-input-grid-${idx}`;
+                inputGridDiv.id = inputGridId;
+                inputDiv.appendChild(inputTitle);
+                inputDiv.appendChild(inputGridDiv);
 
-                pairWrapper.appendChild(inputWrapper);
-                pairWrapper.appendChild(outputWrapper);
-                trainContainer.appendChild(pairWrapper);
+                // Output grid
+                let outputDiv = document.createElement("div");
+                let outputTitle = document.createElement("h4");
+                outputTitle.textContent = `Train Example ${idx + 1} - Output`;
+                let outputGridDiv = document.createElement("div");
+                let outputGridId = `train-output-grid-${idx}`;
+                outputGridDiv.id = outputGridId;
+                outputDiv.appendChild(outputTitle);
+                outputDiv.appendChild(outputGridDiv);
 
-                if (typeof ARCGrid !== "undefined") {
-                    let inputGrid = new ARCGrid(`train-input-${index}`);
+                exampleWrapper.appendChild(inputDiv);
+                exampleWrapper.appendChild(outputDiv);
+                trainContainer.appendChild(exampleWrapper);
+
+                // Render with ARCGrid
+                if (window.ARCGrid) {
+                    let inputGrid = new ARCGrid(inputGridId, false);
                     inputGrid.renderGrid(pair.input);
 
-                    let outputGrid = new ARCGrid(`train-output-${index}`);
+                    let outputGrid = new ARCGrid(outputGridId, false);
                     outputGrid.renderGrid(pair.output);
-                } else {
-                    console.error("❌ Error: ARCGrid is not loaded before calling.");
                 }
             });
         }
 
-        displayTestPairs(testExamples) {
+        displayTestExamples(testList, correctSolutions) {
             let testContainer = document.getElementById("test-examples-container");
-            testContainer.innerHTML = "";
+            if (!testContainer) return;
 
-            testExamples.forEach((pair, index) => {
-                let pairDiv = document.createElement("div");
-                pairDiv.classList.add("test-example-pair");
+            testList.forEach((pair, idx) => {
+                let pairWrapper = document.createElement("div");
+                pairWrapper.classList.add("test-example-pair");
 
-                let inputWrapper = this.createLabeledGrid(`test-input-${index}`, `Test Input ${index + 1}`);
-                let outputWrapper = this.createLabeledGrid(`test-output-${index}`, `Expected Output ${index + 1}`);
+                // Test Input
+                let inputDiv = document.createElement("div");
+                let inputTitle = document.createElement("h4");
+                inputTitle.textContent = `Test Input ${idx + 1}`;
+                let inputGridDiv = document.createElement("div");
+                let inputGridId = `test-input-grid-${idx}`;
+                inputGridDiv.id = inputGridId;
+                inputDiv.appendChild(inputTitle);
+                inputDiv.appendChild(inputGridDiv);
 
-                pairDiv.appendChild(inputWrapper);
-                pairDiv.appendChild(outputWrapper);
-                testContainer.appendChild(pairDiv);
+                // User Attempt
+                let userAttemptDiv = document.createElement("div");
+                let userAttemptTitle = document.createElement("h4");
+                userAttemptTitle.textContent = `Your Attempt ${idx + 1}`;
+                let userAttemptGridDiv = document.createElement("div");
+                let userAttemptGridId = `test-attempt-grid-${idx}`;
+                userAttemptGridDiv.id = userAttemptGridId;
+                userAttemptDiv.appendChild(userAttemptTitle);
+                userAttemptDiv.appendChild(userAttemptGridDiv);
 
-                if (typeof ARCGrid !== "undefined") {
-                    let inputGrid = new ARCGrid(`test-input-${index}`);
+                pairWrapper.appendChild(inputDiv);
+                pairWrapper.appendChild(userAttemptDiv);
+                testContainer.appendChild(pairWrapper);
+
+                // If we do have correctSolutions:
+                if (correctSolutions && correctSolutions[idx]) {
+                    let correctDiv = document.createElement("div");
+                    let correctTitle = document.createElement("h4");
+                    correctTitle.textContent = `Correct Solution ${idx + 1}`;
+                    let correctGridDiv = document.createElement("div");
+                    let correctGridId = `test-correct-grid-${idx}`;
+                    correctGridDiv.id = correctGridId;
+                    correctDiv.appendChild(correctTitle);
+                    correctDiv.appendChild(correctGridDiv);
+                    pairWrapper.appendChild(correctDiv);
+                }
+
+                // Render with ARCGrid
+                if (window.ARCGrid) {
+                    // Input
+                    let inputGrid = new ARCGrid(inputGridId, false);
                     inputGrid.renderGrid(pair.input);
 
-                    this.correctAnswers[index] = pair.output || [];
+                    // Attempt (editable)
+                    let userGrid = new ARCGrid(userAttemptGridId, true);
+                    // Start with an empty or zeroed grid of same shape
+                    let emptyGrid = pair.input.map(row => row.map(() => 0));
+                    userGrid.renderGrid(emptyGrid);
 
-                    let outputGrid = new ARCGrid(`test-output-${index}`, true);
-                    let emptyGrid = pair.output.map(row => row.map(() => 0));
-                    outputGrid.renderGrid(emptyGrid);
-                } else {
-                    console.error("❌ Error: ARCGrid is not loaded before calling.");
+                    // Correct
+                    if (correctSolutions && correctSolutions[idx]) {
+                        let correctGrid = new ARCGrid(`test-correct-grid-${idx}`, false);
+                        correctGrid.renderGrid(correctSolutions[idx]);
+                    }
                 }
             });
         }
 
-        createLabeledGrid(id, label) {
-            let container = document.createElement("div");
-            container.classList.add("grid-container-wrapper");
-
-            let labelElement = document.createElement("h3");
-            labelElement.textContent = label;
-
-            let gridDiv = document.createElement("div");
-            gridDiv.classList.add("grid-container");
-            gridDiv.id = id;
-
-            container.appendChild(labelElement);
-            container.appendChild(gridDiv);
-
-            return container;
-        }
-
-        async submitTask() {
-            let outputData = [];
-            document.querySelectorAll("#output-grid-container .grid-cell").forEach(cell => {
-                outputData.push(cell.textContent.trim() || "0");
-            });
-
-            try {
-                let response = await fetch("/api/process-arc-task", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ solution: outputData })
-                });
-                let data = await response.json();
-
-                document.getElementById("ai-output").textContent = JSON.stringify(data.solution, null, 2);
-                this.loadAIDebate();
-                this.loadKnowledgeGraph();
-            } catch (error) {
-                console.error("Error submitting ARC task:", error);
-                alert("Submission failed. Please try again.");
+        submitSolution() {
+            // Example of collecting the user attempt from the first test pair only
+            let userSolution = [];
+            let attemptGrid = document.getElementById("test-attempt-grid-0");
+            if (!attemptGrid) {
+                alert("No test attempt grid found to submit!");
+                return;
             }
-        }
 
-        async loadAIDebate() {
-            try {
-                let response = await fetch("/api/get-debate-history");
-                let data = await response.json();
-                let debateContainer = document.getElementById("debate-log");
-                debateContainer.innerHTML = "";
-
-                data.debate_log.forEach((debate) => {
-                    let debateEntry = document.createElement("div");
-                    debateEntry.classList.add("debate-entry");
-
-                    debateEntry.innerHTML = `
-                        <p><strong>Rule:</strong> ${debate.rule}</p>
-                        <p><strong>Agent 1:</strong> ${debate.agent1}</p>
-                        <p><strong>Agent 2:</strong> ${debate.agent2}</p>
-                        <p><strong>Judge Decision:</strong> ${debate.judge}</p>
-                        <p class="${debate.contradiction ? 'contradiction-highlight' : 'valid-highlight'}">
-                            ${debate.contradiction ? "⚠ Contradiction Detected" : "✓ No Contradiction"}
-                        </p>
-                    `;
-                    debateContainer.appendChild(debateEntry);
-                });
-            } catch (error) {
-                console.error("Error loading AI debate:", error);
+            let cells = attemptGrid.querySelectorAll(".grid-cell");
+            if (!cells.length) {
+                alert("No cells in user attempt grid!");
+                return;
             }
-        }
 
-        getColorForValue(value) {
-            const colors = {
-                "0": "#ffffff", "1": "#000000", "2": "#ff4136", "3": "#2ecc40",
-                "4": "#0074d9", "5": "#ffdc00", "6": "#f012be", "7": "#ff851b",
-                "8": "#7fdbff", "9": "#870c25"
+            // Determine row/col from styling
+            let columns = parseInt(attemptGrid.style.gridTemplateColumns.split(" ").length);
+            let rows = cells.length / columns;
+
+            let rowData = [];
+            for (let i = 0; i < cells.length; i++) {
+                let val = cells[i].textContent.trim() || "0";
+                // convert to int
+                let numVal = parseInt(val);
+                rowData.push(isNaN(numVal) ? 0 : numVal);
+                if ((i + 1) % columns === 0) {
+                    userSolution.push(rowData);
+                    rowData = [];
+                }
+            }
+
+            const payload = {
+                task_name: "default_task", // or whatever we loaded
+                solution: userSolution
             };
-            return colors[value] || "#ffffff";
+
+            fetch("/api/process-arc-task", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                console.log("Process ARC Task result:", data);
+                // Show AI solution in the #ai-output container
+                document.getElementById("ai-output").textContent = JSON.stringify(data.solution, null, 2);
+            })
+            .catch(error => {
+                console.error("Error submitting solution:", error);
+                alert("Failed to submit solution. Check console.");
+            });
         }
     }
 
+    // Initialize
     new TestingInterface();
 });
