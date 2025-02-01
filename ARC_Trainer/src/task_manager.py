@@ -13,6 +13,7 @@ import requests
 from src.llm_client import LLMClient
 from src.PrologRuleGenerator import PrologRuleGenerator
 from src.learning_agent import LearningAgent
+import base64
 
 from dotenv import load_dotenv
 
@@ -412,55 +413,52 @@ class TaskManager:
         logger.info(f"Generated PNG: {filepath}")
         return filepath
 
-    def call_blip_on_image(self, image_path, custom_prompt=None):
+    def call_blip_on_image(self, image_path, input_grid=True, example_idx=0):
         """
-        Calls the BLIP model via Hugging Face API to generate a description for the given image.
-        Allows sending a custom prompt for better control over the generated text.
-        """
-        if not HF_BLIP_ENDPOINT or not HF_BEARER_TOKEN:
-            logger.warning("BLIP API is not configured properly. Skipping image processing.")
-            return "BLIP not configured."
+        Calls Hugging Face BLIP model to generate a textual description of an image.
+        The image is encoded as base64 and sent as JSON.
+        
+        Args:
+            image_path (str): Path to the PNG image.
+            input_grid (bool): True if it's an input grid, False if it's an output grid.
+            example_idx (int): Example index for logging.
 
+        Returns:
+            str: The BLIP-generated description.
+        """
         if not os.path.exists(image_path):
-            logger.error(f"Image file not found: {image_path}")
             return "No image found for BLIP."
 
+        url = HF_BLIP_ENDPOINT
+        headers = {
+            "Authorization": f"Bearer {HF_BEARER_TOKEN}",
+            "Content-Type": "application/json"
+        }
+
+        # Read image as base64
+        with open(image_path, "rb") as img_file:
+            img_base64 = base64.b64encode(img_file.read()).decode("utf-8")
+
+        # Create the JSON payload
+        payload = {
+            "inputs": {
+                "image": img_base64,
+                "modality": "image"
+            }
+        }
+
         try:
-            # Read the image and encode it as base64
-            with open(image_path, "rb") as img_file:
-                img_base64 = base64.b64encode(img_file.read()).decode("utf-8")
-
-            # Default prompt if none provided
-            prompt = custom_prompt or "Describe the pattern in this grid as accurately as possible."
-
-            # Prepare JSON payload with image & instruction
-            payload = {
-                "inputs": {
-                    "image": img_base64,
-                    "prompt": prompt  # Sending additional instructions
-                },
-                "parameters": {"beam_search": True}  # Optional tuning params
-            }
-
-            headers = {
-                "Authorization": f"Bearer {HF_BEARER_TOKEN}",
-                "Content-Type": "application/json"
-            }
-
-            # Make POST request to Hugging Face API
-            response = requests.post(HF_BLIP_ENDPOINT, headers=headers, json=payload)
-            response.raise_for_status()  # Raise an error for bad responses (4xx, 5xx)
-
-            # Parse response
+            response = requests.post(url, headers=headers, json=payload)
+            response.raise_for_status()
             data = response.json()
-            caption = data.get("caption", "No description generated.")
+            caption = data.get("caption", "No caption from BLIP.")
 
-            logger.info(f"BLIP Response: {caption}")
+            logger.info(f"[BLIP] {('Input' if input_grid else 'Output')} Example {example_idx}: {caption}")
             return caption
-
         except requests.exceptions.RequestException as e:
-            logger.error(f"BLIP API request failed: {e}")
-            return "BLIP call failed."
+            logger.error(f"BLIP call failed: {e}")
+            return "BLIP call failed"
+
     def _maybe_call_blip(self, file_path):
         """
         Calls BLIP for image captioning if configured.
