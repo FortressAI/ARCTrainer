@@ -29,7 +29,7 @@ class LLMClient:
         """
         try:
             completion = self.client.chat.completions.create(
-                model="gpt-4o",  # or "gpt-3.5-turbo", "gpt-4o", etc.
+                model="o3-mini",  # or "gpt-3.5-turbo", "gpt-4o", etc.
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.3,
                 max_tokens=500
